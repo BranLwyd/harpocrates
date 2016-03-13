@@ -22,7 +22,7 @@ const (
 type Handler struct {
 	mu               sync.RWMutex        // protects sessions
 	sessions         map[string]*session // by session ID
-	sessionLength    time.Duration       // how long sessions last
+	sessionDuration  time.Duration       // how long sessions last
 	serializedEntity []byte              // entity used to encrypt/decrypt password entries
 	baseDir          string              // base directory containing password entries
 }
@@ -33,14 +33,14 @@ type session struct {
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity []byte, baseDir string, sessionLength time.Duration) (*Handler, error) {
-	if sessionLength <= 0 {
+func NewHandler(serializedEntity []byte, baseDir string, sessionDuration time.Duration) (*Handler, error) {
+	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
 
 	return &Handler{
 		sessions:         make(map[string]*session),
-		sessionLength:    sessionLength,
+		sessionDuration:  sessionDuration,
 		serializedEntity: serializedEntity,
 		baseDir:          filepath.Clean(baseDir),
 	}, nil
@@ -86,19 +86,19 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	// Start reaper goroutine and return.
 	h.sessions[sessID] = &session{
 		passwordStore:   pwstore,
-		expirationTimer: time.AfterFunc(h.sessionLength, func() { h.CloseSession(sessID) }),
+		expirationTimer: time.AfterFunc(h.sessionDuration, func() { h.CloseSession(sessID) }),
 	}
 	return sessID, nil
 }
 
-// GetSession gets an existing session's password store, if the session exists.
-// It returns nil if the session does not exist. If the session does exist, its
-// expiration timeout is reset.
+// GetPasswordStore gets an existing session's password store, if the session
+// exists.  It returns nil if the session does not exist. If the session does
+// exist, its expiration timeout is reset.
 func (h *Handler) GetPasswordStore(sessionID string) *gopass.PasswordStore {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if sess := h.sessions[sessionID]; sess != nil {
-		if sess.expirationTimer.Reset(h.sessionLength) {
+		if sess.expirationTimer.Reset(h.sessionDuration) {
 			return sess.passwordStore
 		}
 	}

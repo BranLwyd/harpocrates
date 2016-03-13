@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"./session"
+	"../session"
 )
 
 var (
