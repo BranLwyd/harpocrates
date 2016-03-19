@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BranLwyd/gopass"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
+
+	"../password"
 )
 
 const (
@@ -29,7 +30,7 @@ type Handler struct {
 }
 
 type session struct {
-	passwordStore   *gopass.PasswordStore
+	passwordStore   *password.Store
 	expirationTimer *time.Timer
 }
 
@@ -64,7 +65,7 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 			return "", err
 		}
 	}
-	pwstore, err := gopass.Open(h.baseDir, entity)
+	store, err := password.NewStore(h.baseDir, entity)
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +74,8 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	var sessID string
-	for { // This loop is overwhelmingly likely to run for 1 iteration.
+	for {
+		// This loop is overwhelmingly likely to run for 1 iteration.
 		var sID [sessionIDLength]byte
 		if _, err := rand.Read(sID[:]); err != nil {
 			return "", err
@@ -86,7 +88,7 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 
 	// Start reaper goroutine and return.
 	h.sessions[sessID] = &session{
-		passwordStore:   pwstore,
+		passwordStore:   store,
 		expirationTimer: time.AfterFunc(h.sessionDuration, func() { h.CloseSession(sessID) }),
 	}
 	return sessID, nil
@@ -95,7 +97,7 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 // GetPasswordStore gets an existing session's password store, if the session
 // exists.  It returns nil if the session does not exist. If the session does
 // exist, its expiration timeout is reset.
-func (h *Handler) GetPasswordStore(sessionID string) *gopass.PasswordStore {
+func (h *Handler) GetPasswordStore(sessionID string) *password.Store {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if sess := h.sessions[sessionID]; sess != nil {
