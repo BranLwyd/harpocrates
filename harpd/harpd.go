@@ -7,8 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
+	"../api"
 	"../cert"
 	"../session"
 )
@@ -23,10 +25,19 @@ var (
 	certRefreshInterval = flag.Duration("cert_refresh_interval", 7*24*time.Hour, "Interval at which TLS certificate is refreshed.")
 )
 
-func contentHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s requested %s", r.RemoteAddr, r.RequestURI)
+var (
+	apiHandler *api.Handler
+)
 
-	w.WriteHeader(404)
+func contentHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s requested %s", r.RemoteAddr, r.URL)
+
+	switch {
+	case strings.HasPrefix(r.URL.Path, "/api/"):
+		apiHandler.ServeHTTP(w, r)
+	default:
+		http.Error(w, "Not Found", http.StatusNotFound)
+	}
 }
 
 func main() {
@@ -51,7 +62,7 @@ func main() {
 		log.Fatalf("--cert_refresh_interval must be positive")
 	}
 
-	// Create session handler.
+	// Create session handler & API.
 	sEntity, err := ioutil.ReadFile(*entityFile)
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
@@ -60,7 +71,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
-	_ = sessHandler // TODO: remove
+	apiHandler = api.NewHandler(sessHandler)
 
 	// Create certificate cache.
 	certCache, err := cert.NewCache(*certFile, *keyFile, *certRefreshInterval)

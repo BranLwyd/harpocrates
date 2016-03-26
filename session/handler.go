@@ -19,18 +19,23 @@ const (
 	sessionIDLength = 16
 )
 
+var (
+	ErrWrongPassphrase = errors.New("wrong passphrase")
+)
+
 // Handler handles management of sessions, including creation, deletion, and
 // timeout. It is safe for concurrent use from multiple goroutines.
 type Handler struct {
 	mu               sync.RWMutex        // protects sessions
-	sessions         map[string]*session // by session ID
+	sessions         map[string]*Session // by session ID
 	sessionDuration  time.Duration       // how long sessions last
 	serializedEntity []byte              // entity used to encrypt/decrypt password entries
 	baseDir          string              // base directory containing password entries
 }
 
-type session struct {
-	passwordStore   *password.Store
+// Session stores all data associated with a given active user session.
+type Session struct {
+	PasswordStore   *password.Store
 	expirationTimer *time.Timer
 }
 
@@ -41,7 +46,7 @@ func NewHandler(serializedEntity []byte, baseDir string, sessionDuration time.Du
 	}
 
 	return &Handler{
-		sessions:         make(map[string]*session),
+		sessions:         make(map[string]*Session),
 		sessionDuration:  sessionDuration,
 		serializedEntity: serializedEntity,
 		baseDir:          filepath.Clean(baseDir),
@@ -49,8 +54,8 @@ func NewHandler(serializedEntity []byte, baseDir string, sessionDuration time.Du
 }
 
 // CreateSession attempts to create a new session, using the given passphrase.
-// It returns the new session's ID along with the session, or an error if
-// authentication fails or some other error occurs.
+// It returns the new session's ID, or an error if authentication fails or some
+// other error occurs.
 func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	// Read entity, decrypt keys using passphrase, create password store.
 	entity, err := openpgp.ReadEntity(packet.NewReader(bytes.NewReader(h.serializedEntity)))
@@ -58,11 +63,11 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 		return "", err
 	}
 	if err := entity.PrivateKey.Decrypt(passphrase); err != nil {
-		return "", err
+		return "", ErrWrongPassphrase
 	}
 	for _, sk := range entity.Subkeys {
 		if err := sk.PrivateKey.Decrypt(passphrase); err != nil {
-			return "", err
+			return "", ErrWrongPassphrase
 		}
 	}
 	store, err := password.NewStore(h.baseDir, entity)
@@ -87,22 +92,22 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	}
 
 	// Start reaper goroutine and return.
-	h.sessions[sessID] = &session{
-		passwordStore:   store,
+	h.sessions[sessID] = &Session{
+		PasswordStore:   store,
 		expirationTimer: time.AfterFunc(h.sessionDuration, func() { h.CloseSession(sessID) }),
 	}
 	return sessID, nil
 }
 
-// GetPasswordStore gets an existing session's password store, if the session
-// exists.  It returns nil if the session does not exist. If the session does
-// exist, its expiration timeout is reset.
-func (h *Handler) GetPasswordStore(sessionID string) *password.Store {
+// GetSession gets an existing session if the session exists.  It returns nil
+// if the session does not exist. If the session does exist, its expiration
+// timeout is reset.
+func (h *Handler) GetSession(sessionID string) *Session {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if sess := h.sessions[sessionID]; sess != nil {
 		if sess.expirationTimer.Reset(h.sessionDuration) {
-			return sess.passwordStore
+			return sess
 		}
 	}
 	return nil
