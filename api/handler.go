@@ -42,7 +42,7 @@ func NewHandler(sessHandler *session.Handler) *Handler {
 func (a *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/api/") {
 		log.Printf("Handler.ServeHTTP called on unexpected path: %v", r.URL)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -56,34 +56,32 @@ func (a *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(r.URL.Path, "/api/p/"):
 		a.handlePass(w, r)
 	default:
-		http.Error(w, "Not Found", http.StatusNotFound)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 	}
-}
-
-type loginRequest struct {
-	Passphrase string `json:"passphrase"`
 }
 
 func (a *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req loginRequest
+	var req struct {
+		Passphrase string `json:"passphrase"`
+	}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 	// TODO(bran): what if the request is literal "null"?
 	sessID, err := a.sessionHandler.CreateSession([]byte(req.Passphrase))
 	if err != nil {
 		if err == session.ErrWrongPassphrase {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		} else {
 			log.Printf("Got unexpected error when creating session: %v", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -100,12 +98,12 @@ func (a *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (a *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 	sessID, err := getSessionIDForRequest(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}
 
