@@ -106,7 +106,8 @@ func (h *Handler) GetSession(sessionID string) *Session {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if sess := h.sessions[sessionID]; sess != nil {
-		if sess.expirationTimer.Reset(h.sessionDuration) {
+		if sess.expirationTimer.Stop() {
+			sess.expirationTimer.Reset(h.sessionDuration)
 			return sess
 		}
 	}
