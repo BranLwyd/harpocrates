@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -23,7 +22,6 @@ const (
 )
 
 var (
-	port            = flag.Int("port", 443, "Port to serve on.")
 	entityFile      = flag.String("entity_file", "", "File containing PGP entity used to encrypt/decrypt password entries.")
 	baseDir         = flag.String("base_dir", "", "Base directory of password store.")
 	sessionDuration = flag.Duration("session_duration", time.Minute, "Length of sessions (without interaction).")
@@ -76,7 +74,6 @@ func main() {
 		Email:      email,
 	}
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", *port),
 		Handler: http.HandlerFunc(contentHandler),
 		TLSConfig: &tls.Config{
 			MinVersion:     tls.VersionTLS12,
