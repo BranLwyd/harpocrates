@@ -19,11 +19,11 @@ const (
 	host    = "portunus.bran.cc"
 	email   = "brandon.pitman@gmail.com"
 	certDir = "/var/lib/harpd/certs"
+	passDir = "/var/lib/harpd/pass"
 )
 
 var (
 	entityFile      = flag.String("entity_file", "", "File containing PGP entity used to encrypt/decrypt password entries.")
-	baseDir         = flag.String("base_dir", "", "Base directory of password store.")
 	sessionDuration = flag.Duration("session_duration", time.Minute, "Length of sessions (without interaction).")
 )
 
@@ -48,9 +48,6 @@ func main() {
 	if *entityFile == "" {
 		log.Fatalf("--entity_file is required")
 	}
-	if *baseDir == "" {
-		log.Fatalf("--base_dir is required")
-	}
 	if *sessionDuration <= 0 {
 		log.Fatalf("--session_duration must be positive")
 	}
@@ -60,7 +57,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	sessHandler, err := session.NewHandler(sEntity, *baseDir, *sessionDuration)
+	sessHandler, err := session.NewHandler(sEntity, passDir, *sessionDuration)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
