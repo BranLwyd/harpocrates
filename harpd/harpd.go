@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,6 +19,10 @@ const (
 	certDir = "/var/lib/harpd/certs"
 	passDir = "/var/lib/harpd/pass"
 	keyFile = "/var/lib/harpd/key"
+)
+
+var (
+	debug = flag.Bool("debug", false, "If set, serve over HTTP 8080 instead of HTTPS 443.")
 )
 
 type loggingHandler struct {
@@ -41,14 +46,34 @@ func contentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Handle flags.
+	flag.Parse()
+
+	pd := passDir
+	kf := keyFile
+	if *debug {
+		// Debug build uses current directory.
+		pd = "pass/"
+		kf = "key"
+	}
+
 	// Create session handler & API.
-	sEntity, err := ioutil.ReadFile(keyFile)
+	sEntity, err := ioutil.ReadFile(kf)
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	_, err = session.NewHandler(sEntity, passDir, 5*time.Minute)
+	_, err = session.NewHandler(sEntity, pd, 5*time.Minute)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
+	}
+
+	if *debug {
+		server := &http.Server{
+			Addr:    ":8080",
+			Handler: NewLoggingHandler("debug", http.HandlerFunc(contentHandler)),
+		}
+		log.Printf("Serving debug")
+		log.Fatalf("Error while serving: %v", server.ListenAndServe())
 	}
 
 	// Start serving.
