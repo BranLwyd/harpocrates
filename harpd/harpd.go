@@ -11,18 +11,22 @@ import (
 	"time"
 
 	"../api"
-	"../cert"
 	"../session"
+
+	"golang.org/x/crypto/acme/autocert"
+)
+
+const (
+	host    = "portunus.bran.cc"
+	email   = "brandon.pitman@gmail.com"
+	certDir = "/var/lib/harpd/certs"
 )
 
 var (
-	port                = flag.Int("port", 443, "Port to serve on.")
-	entityFile          = flag.String("entity_file", "", "File containing PGP entity used to encrypt/decrypt password entries.")
-	baseDir             = flag.String("base_dir", "", "Base directory of password store.")
-	sessionDuration     = flag.Duration("session_duration", time.Minute, "Length of sessions (without interaction).")
-	certFile            = flag.String("cert_file", "", "File containing TLS certificate.")
-	keyFile             = flag.String("key_file", "", "File containing TLS certificate key.")
-	certRefreshInterval = flag.Duration("cert_refresh_interval", 7*24*time.Hour, "Interval at which TLS certificate is refreshed.")
+	port            = flag.Int("port", 443, "Port to serve on.")
+	entityFile      = flag.String("entity_file", "", "File containing PGP entity used to encrypt/decrypt password entries.")
+	baseDir         = flag.String("base_dir", "", "Base directory of password store.")
+	sessionDuration = flag.Duration("session_duration", time.Minute, "Length of sessions (without interaction).")
 )
 
 var (
@@ -52,15 +56,6 @@ func main() {
 	if *sessionDuration <= 0 {
 		log.Fatalf("--session_duration must be positive")
 	}
-	if *certFile == "" {
-		log.Fatalf("--cert_file is required")
-	}
-	if *keyFile == "" {
-		log.Fatalf("--key_file is required")
-	}
-	if *certRefreshInterval <= 0 {
-		log.Fatalf("--cert_refresh_interval must be positive")
-	}
 
 	// Create session handler & API.
 	sEntity, err := ioutil.ReadFile(*entityFile)
@@ -73,21 +68,20 @@ func main() {
 	}
 	apiHandler = api.NewHandler(sessHandler)
 
-	// Create certificate cache.
-	certCache, err := cert.NewCache(*certFile, *keyFile, *certRefreshInterval)
-	if err != nil {
-		log.Fatalf("Could not create cert cache: %v", err)
-	}
-
 	// Start serving.
+	m := autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(host),
+		Cache:      autocert.DirCache(certDir),
+		Email:      email,
+	}
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", *port),
 		Handler: http.HandlerFunc(contentHandler),
 		TLSConfig: &tls.Config{
 			MinVersion:     tls.VersionTLS12,
 			CipherSuites:   []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256},
-			Certificates:   []tls.Certificate{*certCache.Get()}, // This will never be used, but is required.
-			GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) { return certCache.Get(), nil },
+			GetCertificate: m.GetCertificate,
 		},
 	}
 	log.Printf("Serving")
