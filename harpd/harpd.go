@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,11 +19,7 @@ const (
 	email   = "brandon.pitman@gmail.com"
 	certDir = "/var/lib/harpd/certs"
 	passDir = "/var/lib/harpd/pass"
-)
-
-var (
-	entityFile      = flag.String("entity_file", "", "File containing PGP entity used to encrypt/decrypt password entries.")
-	sessionDuration = flag.Duration("session_duration", time.Minute, "Length of sessions (without interaction).")
+	keyFile = "/var/lib/harpd/key"
 )
 
 var (
@@ -43,21 +38,12 @@ func contentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Check flags.
-	flag.Parse()
-	if *entityFile == "" {
-		log.Fatalf("--entity_file is required")
-	}
-	if *sessionDuration <= 0 {
-		log.Fatalf("--session_duration must be positive")
-	}
-
 	// Create session handler & API.
-	sEntity, err := ioutil.ReadFile(*entityFile)
+	sEntity, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	sessHandler, err := session.NewHandler(sEntity, passDir, *sessionDuration)
+	sessHandler, err := session.NewHandler(sEntity, passDir, 5*time.Minute)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
