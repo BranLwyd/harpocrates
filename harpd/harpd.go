@@ -5,10 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
-	"../api"
 	"../session"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -22,19 +20,24 @@ const (
 	keyFile = "/var/lib/harpd/key"
 )
 
-var (
-	apiHandler *api.Handler
-)
+type loggingHandler struct {
+	h       http.Handler
+	logName string
+}
+
+func (lh loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[%s] %s requested %s", lh.logName, r.RemoteAddr, r.URL)
+}
+
+func NewLoggingHandler(logName string, h http.Handler) http.Handler {
+	return loggingHandler{
+		h:       h,
+		logName: logName,
+	}
+}
 
 func contentHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s requested %s", r.RemoteAddr, r.URL)
-
-	switch {
-	case strings.HasPrefix(r.URL.Path, "/api/"):
-		apiHandler.ServeHTTP(w, r)
-	default:
-		http.Error(w, "Not Found", http.StatusNotFound)
-	}
+	http.Error(w, "Not Found", http.StatusNotFound)
 }
 
 func main() {
@@ -43,11 +46,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	sessHandler, err := session.NewHandler(sEntity, passDir, 5*time.Minute)
+	_, err = session.NewHandler(sEntity, passDir, 5*time.Minute)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
-	apiHandler = api.NewHandler(sessHandler)
 
 	// Start serving.
 	m := autocert.Manager{
@@ -77,7 +79,7 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      http.HandlerFunc(contentHandler),
+		Handler:      NewLoggingHandler("https", http.HandlerFunc(contentHandler)),
 	}
 	log.Printf("Serving")
 	log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))
