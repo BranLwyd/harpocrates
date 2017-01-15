@@ -32,6 +32,7 @@ type loggingHandler struct {
 
 func (lh loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[%s] %s requested %s", lh.logName, r.RemoteAddr, r.URL)
+	lh.h.ServeHTTP(w, r)
 }
 
 func NewLoggingHandler(logName string, h http.Handler) http.Handler {
