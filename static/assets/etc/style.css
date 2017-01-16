@@ -1,0 +1,38 @@
+body {
+  margin: 0;
+  background-color: #f5f5f5;
+  font-family: sans-serif;
+}
+
+.content {
+  padding: 0;
+  padding: 80px 56px;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #424242;
+  margin: -96px auto 80px;
+  min-width: 30em;
+  max-width: 939px;
+  width: calc(80% - 138px);
+  border: 1px solid black;
+
+  line-height: 24px;
+}
+
+p {
+  margin: 0 0 16px;
+}
+
+.inner-content {
+  padding: 2em 4em;
+}
+
+.header {
+  padding: 2em;
+  background: #ddd;
+  border-bottom: 2px solid gray;
+}
+
+.header h1 {
+  text-align: center;
+}

@@ -25,27 +25,6 @@ var (
 	debug = flag.Bool("debug", false, "If set, serve over HTTP 8080 instead of HTTPS 443.")
 )
 
-type loggingHandler struct {
-	h       http.Handler
-	logName string
-}
-
-func (lh loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[%s] %s requested %s", lh.logName, r.RemoteAddr, r.URL)
-	lh.h.ServeHTTP(w, r)
-}
-
-func NewLoggingHandler(logName string, h http.Handler) http.Handler {
-	return loggingHandler{
-		h:       h,
-		logName: logName,
-	}
-}
-
-func contentHandler(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not Found", http.StatusNotFound)
-}
-
 func main() {
 	// Handle flags.
 	flag.Parse()
@@ -58,7 +37,7 @@ func main() {
 		kf = "key"
 	}
 
-	// Create session handler & API.
+	// Create session handler & content handler.
 	sEntity, err := ioutil.ReadFile(kf)
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
@@ -67,17 +46,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
+	ch, err := contentHandler()
+	if err != nil {
+		log.Fatalf("Could not initialize content handler: %v", err)
+	}
 
+	// Start serving.
 	if *debug {
 		server := &http.Server{
-			Addr:    ":8080",
-			Handler: NewLoggingHandler("debug", http.HandlerFunc(contentHandler)),
+			Addr:    "127.0.0.1:8080",
+			Handler: NewLoggingHandler("debug", ch),
 		}
 		log.Printf("Serving debug")
 		log.Fatalf("Error while serving: %v", server.ListenAndServe())
 	}
 
-	// Start serving.
 	m := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
 		HostPolicy: autocert.HostWhitelist(host),
@@ -105,7 +88,7 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      NewLoggingHandler("https", http.HandlerFunc(contentHandler)),
+		Handler:      NewLoggingHandler("https", ch),
 	}
 	log.Printf("Serving")
 	log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))
