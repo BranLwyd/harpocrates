@@ -42,11 +42,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	_, err = session.NewHandler(sEntity, pd, 5*time.Minute)
+	sh, err := session.NewHandler(sEntity, pd, 5*time.Minute)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
-	ch, err := contentHandler()
+	ch, err := newContentHandler(sh)
 	if err != nil {
 		log.Fatalf("Could not initialize content handler: %v", err)
 	}
@@ -55,7 +55,7 @@ func main() {
 	if *debug {
 		server := &http.Server{
 			Addr:    "127.0.0.1:8080",
-			Handler: NewLoggingHandler("debug", ch),
+			Handler: newLoggingHandler("debug", ch),
 		}
 		log.Printf("Serving debug")
 		log.Fatalf("Error while serving: %v", server.ListenAndServe())
@@ -88,7 +88,7 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      NewLoggingHandler("https", ch),
+		Handler:      newLoggingHandler("https", ch),
 	}
 	log.Printf("Serving")
 	log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))

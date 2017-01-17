@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
@@ -21,6 +22,8 @@ const (
 
 var (
 	ErrWrongPassphrase = errors.New("wrong passphrase")
+
+	ErrNoSession = errors.New("no such session")
 )
 
 // Handler handles management of sessions, including creation, deletion, and
@@ -54,8 +57,8 @@ func NewHandler(serializedEntity []byte, baseDir string, sessionDuration time.Du
 }
 
 // CreateSession attempts to create a new session, using the given passphrase.
-// It returns the new session's ID, or an error if authentication fails or some
-// other error occurs.
+// It returns the new session's ID, or ErrWrongPassphrase if authentication occurs,
+// and other errors if they occur.
 func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	// Read entity, decrypt keys using passphrase, create password store.
 	entity, err := openpgp.ReadEntity(packet.NewReader(bytes.NewReader(h.serializedEntity)))
@@ -72,7 +75,7 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	}
 	store, err := password.NewStore(h.baseDir, entity)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not create password store: %v", err)
 	}
 
 	// Generate session ID.
@@ -99,19 +102,19 @@ func (h *Handler) CreateSession(passphrase []byte) (string, error) {
 	return sessID, nil
 }
 
-// GetSession gets an existing session if the session exists.  It returns nil
-// if the session does not exist. If the session does exist, its expiration
-// timeout is reset.
-func (h *Handler) GetSession(sessionID string) *Session {
+// GetSession gets an existing session if the session exists.  It returns
+// ErrNoSession if the session does not exist. If the session does exist, its
+// expiration timeout is reset.
+func (h *Handler) GetSession(sessionID string) (*Session, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if sess := h.sessions[sessionID]; sess != nil {
 		if sess.expirationTimer.Stop() {
 			sess.expirationTimer.Reset(h.sessionDuration)
-			return sess
+			return sess, nil
 		}
 	}
-	return nil
+	return nil, ErrNoSession
 }
 
 // CloseSession closes an existing session, freeing all resources used by the
