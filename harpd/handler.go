@@ -123,6 +123,7 @@ func addSessionIDToRequest(w http.ResponseWriter, sid string) {
 	c := &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    encodedSID,
+		Path:     "/",
 		HttpOnly: true,
 	}
 	http.SetCookie(w, c)
