@@ -53,6 +53,12 @@ func newContentHandler(sh *session.Handler) (http.Handler, error) {
 	}
 	mux.Handle("/style.css", styleHandler)
 
+	robotsHandler, err := assetHandler("etc/robots.txt", "text/plain; charset=utf-8")
+	if err != nil {
+		return nil, fmt.Errorf("could not create robots handler: %v", err)
+	}
+	mux.Handle("/robots.txt", robotsHandler)
+
 	// Login handler.
 	lh, err := newLoginHandler(sh)
 	if err != nil {
