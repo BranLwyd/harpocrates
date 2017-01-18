@@ -38,11 +38,11 @@ func main() {
 	}
 
 	// Create session handler & content handler.
-	sEntity, err := ioutil.ReadFile(kf)
+	se, err := ioutil.ReadFile(kf)
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	sh, err := session.NewHandler(sEntity, pd, 5*time.Minute)
+	sh, err := session.NewHandler(string(se), pd, 5*time.Minute)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
