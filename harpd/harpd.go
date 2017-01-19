@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"../session"
+	"../static"
 
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -53,12 +54,27 @@ func main() {
 
 	// Start serving.
 	if *debug {
+		certPEM, err := static.Asset("debug/cert.pem")
+		if err != nil {
+			log.Fatalf("Could not load self-signed certificate: %v", err)
+		}
+		keyPEM, err := static.Asset("debug/key.pem")
+		if err != nil {
+			log.Fatalf("Could not load self-signed certificate key: %v", err)
+		}
+		cert, err := tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			log.Fatalf("Could not parse self-signed certificate: %v", err)
+		}
 		server := &http.Server{
+			TLSConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			},
 			Addr:    "127.0.0.1:8080",
 			Handler: newLoggingHandler("debug", ch),
 		}
 		log.Printf("Serving debug")
-		log.Fatalf("Error while serving: %v", server.ListenAndServe())
+		log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))
 	}
 
 	m := autocert.Manager{
