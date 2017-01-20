@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"../handler"
 	"../session"
 	"../static"
 
@@ -47,7 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
-	ch, err := newContentHandler(sh)
+	ch, err := handler.NewContent(sh)
 	if err != nil {
 		log.Fatalf("Could not initialize content handler: %v", err)
 	}
@@ -71,7 +72,7 @@ func main() {
 				Certificates: []tls.Certificate{cert},
 			},
 			Addr:    "127.0.0.1:8080",
-			Handler: newLoggingHandler("debug", ch),
+			Handler: handler.NewLogging("debug", ch),
 		}
 		log.Printf("Serving debug")
 		log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))
@@ -104,7 +105,7 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      newLoggingHandler("https", ch),
+		Handler:      handler.NewLogging("https", ch),
 	}
 	log.Printf("Serving")
 	log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))
