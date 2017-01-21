@@ -14,9 +14,10 @@ const (
 
 func NewContent(sh *session.Handler) (http.Handler, error) {
 	mux := http.NewServeMux()
-	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusFound)))
 
 	// Static content handlers.
+	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusFound)))
+
 	styleHandler, err := newAsset("etc/style.css", "text/css; charset=utf-8")
 	if err != nil {
 		return nil, fmt.Errorf("could not create style handler: %v", err)
@@ -29,8 +30,25 @@ func NewContent(sh *session.Handler) (http.Handler, error) {
 	}
 	mux.Handle("/robots.txt", robotsHandler)
 
-	// Dynamic content handler.
-	dh, err := newDynamic(sh)
+	u2fAPIHandler, err := newAsset("etc/u2f-api.js", "application/javascript")
+	if err != nil {
+		return nil, fmt.Errorf("could not create U2F API handler: %v", err)
+	}
+	mux.Handle("/u2f-api.js", u2fAPIHandler)
+
+	// Dynamic content handlers.
+	sp, err := newSessionProvider(sh)
+	if err != nil {
+		return nil, fmt.Errorf("could not create session provider: %v", err)
+	}
+
+	rh, err := newRegister(sp)
+	if err != nil {
+		return nil, fmt.Errorf("could not create registration handler: %v", err)
+	}
+	mux.Handle("/register", rh)
+
+	dh, err := newDynamic(sp)
 	if err != nil {
 		return nil, fmt.Errorf("could not create dynamic content handler: %v", err)
 	}

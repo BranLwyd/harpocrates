@@ -32,8 +32,13 @@ p {
   border-bottom: 1px solid black;
 }
 
-.header h1 {
+.content h1 {
   text-align: center;
+}
+
+h2.message {
+  text-align: center;
+  word-wrap: break-word;
 }
 
 .password-box {
