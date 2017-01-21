@@ -33,10 +33,12 @@ func main() {
 
 	pd := passDir
 	kf := keyFile
+	hn := host
 	if *debug {
 		// Debug build uses current directory.
 		pd = "pass/"
 		kf = "key"
+		hn = "localhost:8080"
 	}
 
 	// Create session handler & content handler.
@@ -44,7 +46,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	sh, err := session.NewHandler(string(se), pd, 5*time.Minute)
+	sh, err := session.NewHandler(string(se), pd, hn, 5*time.Minute)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tstranex/u2f"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 
@@ -35,16 +36,11 @@ type Handler struct {
 	sessionDuration  time.Duration // how long sessions last
 	serializedEntity string        // entity used to encrypt/decrypt password entries
 	baseDir          string        // base directory containing password entries
-}
-
-// Session stores all data associated with a given active user session.
-type Session struct {
-	PasswordStore   *password.Store
-	expirationTimer *time.Timer
+	appID            string        // U2F app ID
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity, baseDir string, sessionDuration time.Duration) (*Handler, error) {
+func NewHandler(serializedEntity, baseDir, host string, sessionDuration time.Duration) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
@@ -54,6 +50,7 @@ func NewHandler(serializedEntity, baseDir string, sessionDuration time.Duration)
 		sessionDuration:  sessionDuration,
 		serializedEntity: serializedEntity,
 		baseDir:          filepath.Clean(baseDir),
+		appID:            fmt.Sprintf("https://%s", host),
 	}, nil
 }
 
@@ -98,7 +95,8 @@ func (h *Handler) CreateSession(passphrase string) (string, *Session, error) {
 
 	// Start reaper timer and return.
 	sess := &Session{
-		PasswordStore:   store,
+		h:               h,
+		passwordStore:   store,
 		expirationTimer: time.AfterFunc(h.sessionDuration, func() { h.CloseSession(sessID) }),
 	}
 	h.sessions[sessID] = sess
@@ -129,4 +127,42 @@ func (h *Handler) CloseSession(sessionID string) {
 		sess.expirationTimer.Stop()
 		delete(h.sessions, sessionID)
 	}
+}
+
+// Session stores all data associated with a given active user session.
+// It is safe for concurrent use from multiple goroutines.
+type Session struct {
+	h               *Handler
+	passwordStore   *password.Store
+	expirationTimer *time.Timer
+
+	challengeMu sync.RWMutex // protects challenge
+	challenge   *u2f.Challenge
+}
+
+// GetStore returns the password store associated with this session.
+func (s Session) GetStore() *password.Store {
+	return s.passwordStore
+}
+
+// GenerateChallenge generates a new challenge for U2F registration/verification.
+// This replaces any previous challenge that may exist.
+func (s *Session) GenerateChallenge() (*u2f.Challenge, error) {
+	c, err := u2f.NewChallenge(s.h.appID, []string{s.h.appID})
+	if err != nil {
+		return nil, fmt.Errorf("could not generate challenge: %v", err)
+	}
+
+	s.challengeMu.Lock()
+	defer s.challengeMu.Unlock()
+	s.challenge = c
+	return c, nil
+}
+
+// GetChallenge gets the current challenge for U2F registration/verification.
+// It returns nil if there is no current challenge.
+func (s Session) GetChallenge() *u2f.Challenge {
+	s.challengeMu.RLock()
+	defer s.challengeMu.RUnlock()
+	return s.challenge
 }
