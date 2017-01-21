@@ -3,6 +3,7 @@ package session
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -22,9 +23,10 @@ const (
 )
 
 var (
-	ErrWrongPassphrase = errors.New("wrong passphrase")
-
-	ErrNoSession = errors.New("no such session")
+	ErrWrongPassphrase    = errors.New("wrong passphrase")
+	ErrNoSession          = errors.New("no such session")
+	ErrNoChallenge        = errors.New("no current challenge")
+	ErrVerificationFailed = errors.New("U2F verification failed")
 )
 
 // Handler handles management of sessions, including creation, deletion, and
@@ -33,16 +35,31 @@ type Handler struct {
 	mu       sync.RWMutex        // protects sessions
 	sessions map[string]*Session // by session ID
 
-	sessionDuration  time.Duration // how long sessions last
-	serializedEntity string        // entity used to encrypt/decrypt password entries
-	baseDir          string        // base directory containing password entries
-	appID            string        // U2F app ID
+	counters         *CounterStore      // Store of U2F counters by key handle.
+	sessionDuration  time.Duration      // how long sessions last
+	serializedEntity string             // entity used to encrypt/decrypt password entries
+	baseDir          string             // base directory containing password entries
+	appID            string             // U2F app ID
+	registrations    []u2f.Registration // U2F device registrations
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity, baseDir, host string, sessionDuration time.Duration) (*Handler, error) {
+func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *CounterStore) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
+	}
+
+	var regs []u2f.Registration
+	for i, r := range registrations {
+		rBytes, err := base64.RawStdEncoding.DecodeString(r)
+		if err != nil {
+			return nil, fmt.Errorf("could not decode registration %d: %v", i, err)
+		}
+		var reg u2f.Registration
+		if err := reg.UnmarshalBinary(rBytes); err != nil {
+			return nil, fmt.Errorf("could not parse registration %d: %v", i, err)
+		}
+		regs = append(regs, reg)
 	}
 
 	return &Handler{
@@ -51,6 +68,8 @@ func NewHandler(serializedEntity, baseDir, host string, sessionDuration time.Dur
 		serializedEntity: serializedEntity,
 		baseDir:          filepath.Clean(baseDir),
 		appID:            fmt.Sprintf("https://%s", host),
+		registrations:    regs,
+		counters:         cs,
 	}, nil
 }
 
@@ -85,7 +104,7 @@ func (h *Handler) CreateSession(passphrase string) (string, *Session, error) {
 		// This loop is overwhelmingly likely to run for 1 iteration.
 		var sID [sessionIDLength]byte
 		if _, err := rand.Read(sID[:]); err != nil {
-			return "", nil, err
+			return "", nil, fmt.Errorf("could not generate session ID: %v", err)
 		}
 		sessID = string(sID[:])
 		if _, ok := h.sessions[sessID]; !ok {
@@ -94,9 +113,14 @@ func (h *Handler) CreateSession(passphrase string) (string, *Session, error) {
 	}
 
 	// Start reaper timer and return.
+	state := U2F_REQUIRED
+	if len(h.registrations) == 0 {
+		state = AUTHENTICATED
+	}
 	sess := &Session{
 		h:               h,
 		passwordStore:   store,
+		state:           state,
 		expirationTimer: time.AfterFunc(h.sessionDuration, func() { h.CloseSession(sessID) }),
 	}
 	h.sessions[sessID] = sess
@@ -129,6 +153,27 @@ func (h *Handler) CloseSession(sessionID string) {
 	}
 }
 
+// state represents the possible states of an existing session.
+// Sessions aren't created until password authentication is successful,
+// so there is no state for requiring password authentication.
+type state uint8
+
+const (
+	U2F_REQUIRED state = iota
+	AUTHENTICATED
+)
+
+func (s state) String() string {
+	switch s {
+	case U2F_REQUIRED:
+		return "U2F_REQUIRED"
+	case AUTHENTICATED:
+		return "AUTHENTICATED"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 // Session stores all data associated with a given active user session.
 // It is safe for concurrent use from multiple goroutines.
 type Session struct {
@@ -136,33 +181,100 @@ type Session struct {
 	passwordStore   *password.Store
 	expirationTimer *time.Timer
 
-	challengeMu sync.RWMutex // protects challenge
-	challenge   *u2f.Challenge
+	mu        sync.RWMutex // protects state, challenge
+	state     state
+	challenge *u2f.Challenge
 }
 
-// GetStore returns the password store associated with this session.
-func (s Session) GetStore() *password.Store {
-	return s.passwordStore
+// GetStore returns the password store associated with this session.  The
+// session must be in state AUTHENTICATED.
+func (s Session) GetStore() (*password.Store, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.state != AUTHENTICATED {
+		return nil, fmt.Errorf("in state %s, expected state AUTHENTICATED", s.state)
+	}
+	return s.passwordStore, nil
 }
 
-// GenerateChallenge generates a new challenge for U2F registration/verification.
-// This replaces any previous challenge that may exist.
-func (s *Session) GenerateChallenge() (*u2f.Challenge, error) {
+func (s *Session) AuthorizeU2F(sr u2f.SignResponse) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state != U2F_REQUIRED {
+		return fmt.Errorf("in state %s, expected state U2F_REQUIRED", s.state)
+	}
+	if s.challenge == nil {
+		return ErrNoChallenge
+	}
+	ctr := s.h.counters.Get(sr.KeyHandle)
+	for _, reg := range s.h.registrations {
+		if newCtr, err := reg.Authenticate(sr, *s.challenge, ctr); err == nil {
+			// Successful verification. Store counter before we consider this authenticated.
+			if err := s.h.counters.Set(sr.KeyHandle, newCtr); err != nil {
+				return fmt.Errorf("could not set new counter value: %v", err)
+			}
+
+			s.state = AUTHENTICATED
+			s.challenge = nil
+			return nil
+		}
+	}
+	return ErrVerificationFailed
+}
+
+func (s *Session) generateChallenge(requiredState state) (*u2f.Challenge, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state != requiredState {
+		return nil, fmt.Errorf("in state %s, expected state %s", s.state, requiredState)
+	}
 	c, err := u2f.NewChallenge(s.h.appID, []string{s.h.appID})
 	if err != nil {
 		return nil, fmt.Errorf("could not generate challenge: %v", err)
 	}
-
-	s.challengeMu.Lock()
-	defer s.challengeMu.Unlock()
 	s.challenge = c
 	return c, nil
 }
 
-// GetChallenge gets the current challenge for U2F registration/verification.
-// It returns nil if there is no current challenge.
-func (s Session) GetChallenge() *u2f.Challenge {
-	s.challengeMu.RLock()
-	defer s.challengeMu.RUnlock()
-	return s.challenge
+func (s Session) getChallenge(requiredState state) (*u2f.Challenge, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.state != requiredState {
+		return nil, fmt.Errorf("in state %s, expected state %s", s.state, requiredState)
+	}
+	if s.challenge == nil {
+		return nil, ErrNoChallenge
+	}
+	return s.challenge, nil
+}
+
+// GenerateVerifyChallenge generates a new challenge for U2F verification. This
+// replaces any previous challenge that may exist. The session must be in state
+// U2F_REQUIRED.
+func (s *Session) GenerateVerifyChallenge() (*u2f.Challenge, error) {
+	return s.generateChallenge(U2F_REQUIRED)
+}
+
+// GetVerifyChallenge gets the current challenge for U2F verification.
+func (s Session) GetVerifyChallenge() (*u2f.Challenge, error) {
+	return s.getChallenge(U2F_REQUIRED)
+}
+
+// GenerateRegisterChallenge generates a new challenge for U2F registration.
+// This replaces any previous challenge that may exist.  The session must be in
+// state AUTHENTICATED.
+func (s *Session) GenerateRegisterChallenge() (*u2f.Challenge, error) {
+	return s.generateChallenge(AUTHENTICATED)
+}
+
+// GetRegisterChallenge gets the current challenge for U2F registration.  It
+// returns ErrNoChallenge if there is no current challenge.  The session must
+// be in state AUTHENTICATED.
+func (s Session) GetRegisterChallenge() (*u2f.Challenge, error) {
+	return s.getChallenge(AUTHENTICATED)
+}
+
+// GetRegistrations gets the set of registrations for U2F devices.
+func (s Session) GetRegistrations() []u2f.Registration {
+	return s.h.registrations
 }

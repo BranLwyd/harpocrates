@@ -21,6 +21,8 @@ const (
 	certDir = "/var/lib/harpd/certs"
 	passDir = "/var/lib/harpd/pass"
 	keyFile = "/var/lib/harpd/key"
+	ctrFile = "/var/lib/harpd/u2fctr"
+	u2fReg  = "BQTh/D3Xi2VkWvc0mTicoUJeKnPnk3GgVla5JCvPcPhWkAtnCtAmW6bLIG9NHnZkNHUmKcmLTTlwvvs4Zfz+IKhbQAWYk1rzJYmMqdidWgaRlgmrDPL3gnPc1PATwUxUshRuuJVOvDqxvhzHMj4v3ziKs78obxZ4XFCVYTNZUPO+nnEwggJEMIIBLqADAgECAgRVYr6gMAsGCSqGSIb3DQEBCzAuMSwwKgYDVQQDEyNZdWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAwMDBaGA8yMDUwMDkwNDAwMDAwMFowKjEoMCYGA1UEAwwfWXViaWNvIFUyRiBFRSBTZXJpYWwgMTQzMjUzNDY4ODBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABEszH3c9gUS5mVy+RYVRfhdYOqR2I2lcvoWsSCyAGfLJuUZ64EWw5m8TGy6jJDyR/aYC4xjz/F2NKnq65yvRQwmjOzA5MCIGCSsGAQQBgsQKAgQVMS4zLjYuMS40LjEuNDE0ODIuMS41MBMGCysGAQQBguUcAgEBBAQDAgUgMAsGCSqGSIb3DQEBCwOCAQEArBbZs262s6m3bXWUs09Z9Pc+28n96yk162tFHKv0HSXT5xYU10cmBMpypXjjI+23YARoXwXn0bm+BdtulED6xc/JMqbK+uhSmXcu2wJ4ICA81BQdPutvaizpnjlXgDJjq6uNbsSAp98IStLLp7fW13yUw+vAsWb5YFfK9f46Yx6iakM3YqNvvs9M9EUJYl/VrxBJqnyLx2iaZlnpr13o8NcsKIJRdMUOBqt/ageQg3ttsyq/3LyoNcu7CQ7x8NmeCGm/6eVnZMQjDmwFdymwEN4OxfnM5MkcKCYhjqgIGruWkVHsFnJa8qjZXneVvKoiepuUQyDEJ2GcqvhU2YKY1zBFAiB2afTDsR6rPnfYBSk6qpYf7UXUa9oXxPeJDMOuWHNlOAIhAIM14GSSI8rhLhWCMiFLEzD9T1G7SbfHS37fgGwyQgal"
 )
 
 var (
@@ -34,11 +36,13 @@ func main() {
 	pd := passDir
 	kf := keyFile
 	hn := host
+	cf := ctrFile
 	if *debug {
 		// Debug build uses current directory.
 		pd = "pass/"
 		kf = "key"
 		hn = "localhost:8080"
+		cf = "u2fctr"
 	}
 
 	// Create session handler & content handler.
@@ -46,7 +50,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not read entity: %v", err)
 	}
-	sh, err := session.NewHandler(string(se), pd, hn, 5*time.Minute)
+	cs, err := session.NewCounterStore(cf)
+	if err != nil {
+		log.Fatalf("Could not create U2F counter store: %v", err)
+	}
+	sh, err := session.NewHandler(string(se), pd, hn, []string{u2fReg}, 5*time.Minute, cs)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 
+	"../session"
 	"../static"
 
 	"github.com/tstranex/u2f"
@@ -45,13 +46,13 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		c, err := sess.GenerateChallenge()
+		c, err := sess.GenerateRegisterChallenge()
 		if err != nil {
 			log.Printf("Could not create U2F challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		req := u2f.NewWebRegisterRequest(c, nil) // TODO: include existing registrations
+		req := u2f.NewWebRegisterRequest(c, sess.GetRegistrations())
 
 		var buf bytes.Buffer
 		if err := rh.tmpl.Execute(&buf, req); err != nil {
@@ -62,10 +63,14 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		newStatic(buf.String(), "text/html; charset=utf-8").ServeHTTP(w, r)
 
 	case http.MethodPost:
-		c := sess.GetChallenge()
-		if c == nil {
+		c, err := sess.GetRegisterChallenge()
+		if err == session.ErrNoChallenge {
 			log.Printf("Got POST to /register without a challenge")
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		} else if err != nil {
+			log.Printf("Could not retrieve U2F registration challenge: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
