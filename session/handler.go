@@ -23,10 +23,10 @@ const (
 )
 
 var (
-	ErrWrongPassphrase    = errors.New("wrong passphrase")
-	ErrNoSession          = errors.New("no such session")
-	ErrNoChallenge        = errors.New("no current challenge")
-	ErrVerificationFailed = errors.New("U2F verification failed")
+	ErrWrongPassphrase         = errors.New("wrong passphrase")
+	ErrNoSession               = errors.New("no such session")
+	ErrNoChallenge             = errors.New("no current challenge")
+	ErrU2FAuthenticationFailed = errors.New("U2F authentication failed")
 )
 
 // Handler handles management of sessions, including creation, deletion, and
@@ -156,14 +156,14 @@ func (h *Handler) CloseSession(sessionID string) {
 // state represents the possible states of an existing session.
 // Sessions aren't created until password authentication is successful,
 // so there is no state for requiring password authentication.
-type state uint8
+type State uint8
 
 const (
-	U2F_REQUIRED state = iota
+	U2F_REQUIRED State = iota
 	AUTHENTICATED
 )
 
-func (s state) String() string {
+func (s State) String() string {
 	switch s {
 	case U2F_REQUIRED:
 		return "U2F_REQUIRED"
@@ -182,7 +182,7 @@ type Session struct {
 	expirationTimer *time.Timer
 
 	mu        sync.RWMutex // protects state, challenge
-	state     state
+	state     State
 	challenge *u2f.Challenge
 }
 
@@ -197,7 +197,13 @@ func (s Session) GetStore() (*password.Store, error) {
 	return s.passwordStore, nil
 }
 
-func (s *Session) AuthorizeU2F(sr u2f.SignResponse) error {
+func (s Session) GetState() State {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.state
+}
+
+func (s *Session) U2FAuthenticate(sr u2f.SignResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.state != U2F_REQUIRED {
@@ -209,7 +215,7 @@ func (s *Session) AuthorizeU2F(sr u2f.SignResponse) error {
 	ctr := s.h.counters.Get(sr.KeyHandle)
 	for _, reg := range s.h.registrations {
 		if newCtr, err := reg.Authenticate(sr, *s.challenge, ctr); err == nil {
-			// Successful verification. Store counter before we consider this authenticated.
+			// Successful authentication. Store counter before we allow progress.
 			if err := s.h.counters.Set(sr.KeyHandle, newCtr); err != nil {
 				return fmt.Errorf("could not set new counter value: %v", err)
 			}
@@ -219,10 +225,10 @@ func (s *Session) AuthorizeU2F(sr u2f.SignResponse) error {
 			return nil
 		}
 	}
-	return ErrVerificationFailed
+	return ErrU2FAuthenticationFailed
 }
 
-func (s *Session) generateChallenge(requiredState state) (*u2f.Challenge, error) {
+func (s *Session) generateChallenge(requiredState State) (*u2f.Challenge, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.state != requiredState {
@@ -236,7 +242,7 @@ func (s *Session) generateChallenge(requiredState state) (*u2f.Challenge, error)
 	return c, nil
 }
 
-func (s Session) getChallenge(requiredState state) (*u2f.Challenge, error) {
+func (s Session) getChallenge(requiredState State) (*u2f.Challenge, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.state != requiredState {
@@ -248,15 +254,17 @@ func (s Session) getChallenge(requiredState state) (*u2f.Challenge, error) {
 	return s.challenge, nil
 }
 
-// GenerateVerifyChallenge generates a new challenge for U2F verification. This
-// replaces any previous challenge that may exist. The session must be in state
-// U2F_REQUIRED.
-func (s *Session) GenerateVerifyChallenge() (*u2f.Challenge, error) {
+// GenerateAuthenticateChallenge generates a new challenge for U2F
+// authentication. This replaces any previous challenge that may exist. The
+// session must be in state U2F_REQUIRED.
+func (s *Session) GenerateAuthenticateChallenge() (*u2f.Challenge, error) {
 	return s.generateChallenge(U2F_REQUIRED)
 }
 
-// GetVerifyChallenge gets the current challenge for U2F verification.
-func (s Session) GetVerifyChallenge() (*u2f.Challenge, error) {
+// GetAuthenticateChallenge gets the current challenge for U2F authentication.
+// It returns ErrNoChallenge if there is no current challenge. The session must
+// be in state U2F_REQUIRED.
+func (s Session) GetAuthenticateChallenge() (*u2f.Challenge, error) {
 	return s.getChallenge(U2F_REQUIRED)
 }
 

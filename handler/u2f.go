@@ -48,7 +48,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		c, err := sess.GenerateRegisterChallenge()
 		if err != nil {
-			log.Printf("Could not create U2F challenge: %v", err)
+			log.Printf("Could not create U2F registration challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -76,7 +76,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var resp u2f.RegisterResponse
 		if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-			log.Printf("Got unparseable POST to /register: %v", err)
+			log.Printf("Could not parse U2F registration response: %v", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
