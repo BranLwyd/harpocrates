@@ -128,14 +128,21 @@ func (h *Handler) CreateSession(passphrase string) (string, *Session, error) {
 }
 
 // GetSession gets an existing session if the session exists.  It returns
-// ErrNoSession if the session does not exist. If the session does exist, its
-// expiration timeout is reset.
+// ErrNoSession if the session does not exist. If the session does exist and is
+// fully authenticated, its expiration timeout is reset.
 func (h *Handler) GetSession(sessionID string) (*Session, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if sess := h.sessions[sessionID]; sess != nil {
-		if sess.expirationTimer.Stop() {
-			sess.expirationTimer.Reset(h.sessionDuration)
+		sess.mu.RLock()
+		defer sess.mu.RUnlock()
+
+		if sess.state == AUTHENTICATED {
+			if sess.expirationTimer.Stop() {
+				sess.expirationTimer.Reset(h.sessionDuration)
+				return sess, nil
+			}
+		} else {
 			return sess, nil
 		}
 	}
