@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -15,25 +14,14 @@ import (
 	"github.com/tstranex/u2f"
 )
 
+var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(static.MustAsset("templates/u2f-register.html"))))
+
 // registerHandler handles registering a new U2F token.
 // It assumes it can get an authenticated session from the request.
-type registerHandler struct {
-	tmpl *template.Template
-}
+type registerHandler struct{}
 
-func newRegister() (http.Handler, error) {
-	urt, err := static.Asset("templates/u2f-register.html")
-	if err != nil {
-		return nil, fmt.Errorf("could not get U2F registration template: %v", err)
-	}
-	tmpl, err := template.New("u2f-register").Parse(string(urt))
-	if err != nil {
-		return nil, fmt.Errorf("could not parse U2F registration template: %v", err)
-	}
-
-	return &registerHandler{
-		tmpl: tmpl,
-	}, nil
+func newRegister() http.Handler {
+	return &registerHandler{}
 }
 
 func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +43,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		req := u2f.NewWebRegisterRequest(c, sess.GetRegistrations())
 
 		var buf bytes.Buffer
-		if err := rh.tmpl.Execute(&buf, req); err != nil {
+		if err := u2fRegisterTmpl.Execute(&buf, req); err != nil {
 			log.Printf("Could not execute U2F registration template: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

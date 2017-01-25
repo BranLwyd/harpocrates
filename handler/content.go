@@ -33,11 +33,7 @@ func NewContent(sh *session.Handler) (http.Handler, error) {
 	mux.Handle("/u2f-api.js", u2fAPIHandler)
 
 	// Dynamic content handlers.
-	rh, err := newRegister()
-	if err != nil {
-		return nil, fmt.Errorf("could not create registration handler: %v", err)
-	}
-	mux.Handle("/register", newLogin(sh, rh))
+	mux.Handle("/register", newLogin(sh, newRegister()))
 	mux.Handle("/p/", newLogin(sh, newDynamic()))
 
 	return mux, nil
