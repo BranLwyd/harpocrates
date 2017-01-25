@@ -61,14 +61,8 @@ func main() {
 
 	// Start serving.
 	if *debug {
-		certPEM, err := static.Asset("debug/cert.pem")
-		if err != nil {
-			log.Fatalf("Could not load self-signed certificate: %v", err)
-		}
-		keyPEM, err := static.Asset("debug/key.pem")
-		if err != nil {
-			log.Fatalf("Could not load self-signed certificate key: %v", err)
-		}
+		certPEM := static.MustAsset("debug/cert.pem")
+		keyPEM := static.MustAsset("debug/key.pem")
 		cert, err := tls.X509KeyPair(certPEM, keyPEM)
 		if err != nil {
 			log.Fatalf("Could not parse self-signed certificate: %v", err)
