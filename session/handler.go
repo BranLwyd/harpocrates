@@ -136,11 +136,14 @@ func (h *Handler) GetSession(sessionID string) (*Session, error) {
 	if sess := h.sessions[sessionID]; sess != nil {
 		sess.mu.RLock()
 		defer sess.mu.RUnlock()
-		if sess.state == AUTHENTICATED && sess.expirationTimer.Stop() {
-			sess.expirationTimer.Reset(h.sessionDuration)
+		if sess.state == AUTHENTICATED {
+			if sess.expirationTimer.Stop() {
+				sess.expirationTimer.Reset(h.sessionDuration)
+				return sess, nil
+			}
+		} else {
+			return sess, nil
 		}
-
-		return sess, nil
 	}
 	return nil, ErrNoSession
 }
