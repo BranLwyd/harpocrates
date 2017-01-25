@@ -35,10 +35,7 @@ func newAsset(name, contentType string) (*staticHandler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
 	}
-	return &staticHandler{
-		content:     string(assetBytes),
-		contentType: contentType,
-	}, nil
+	return newStatic(string(assetBytes), contentType), nil
 }
 
 func (sh staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
