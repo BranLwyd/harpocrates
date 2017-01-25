@@ -18,7 +18,11 @@ import (
 
 type handlerContextKey int
 
-const sessionContextKey handlerContextKey = 0
+const (
+	sessionContextKey handlerContextKey = 0
+
+	sessionCookieName = "harp-sid"
+)
 
 var (
 	loginPasswordHandler = must(newAsset("pages/login-password.html", "text/html; charset=utf-8"))

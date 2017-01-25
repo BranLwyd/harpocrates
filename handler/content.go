@@ -8,10 +8,6 @@ import (
 	"../session"
 )
 
-const (
-	sessionCookieName = "harp-sid"
-)
-
 func NewContent(sh *session.Handler) (http.Handler, error) {
 	mux := http.NewServeMux()
 
