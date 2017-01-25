@@ -16,13 +16,12 @@ import (
 )
 
 // registerHandler handles registering a new U2F token.
+// It assumes it can get an authenticated session from the request.
 type registerHandler struct {
-	sp *sessionProvider
-
 	tmpl *template.Template
 }
 
-func newRegister(sp *sessionProvider) (http.Handler, error) {
+func newRegister() (http.Handler, error) {
 	urt, err := static.Asset("templates/u2f-register.html")
 	if err != nil {
 		return nil, fmt.Errorf("could not get U2F registration template: %v", err)
@@ -33,14 +32,15 @@ func newRegister(sp *sessionProvider) (http.Handler, error) {
 	}
 
 	return &registerHandler{
-		sp:   sp,
 		tmpl: tmpl,
 	}, nil
 }
 
 func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	sess := rh.sp.GetSession(w, r)
+	sess := sessionFrom(r)
 	if sess == nil {
+		log.Printf("Could not get authenticated session in U2F registration handler")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

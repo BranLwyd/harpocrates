@@ -37,18 +37,17 @@ func NewContent(sh *session.Handler) (http.Handler, error) {
 	mux.Handle("/u2f-api.js", u2fAPIHandler)
 
 	// Dynamic content handlers.
-	sp, err := newSessionProvider(sh)
-	if err != nil {
-		return nil, fmt.Errorf("could not create session provider: %v", err)
-	}
-
-	rh, err := newRegister(sp)
+	rh, err := newRegister()
 	if err != nil {
 		return nil, fmt.Errorf("could not create registration handler: %v", err)
 	}
+	rh, err = newLogin(sh, rh)
+	if err != nil {
+		return nil, fmt.Errorf("could not create login handler for registration: %v", err)
+	}
 	mux.Handle("/register", rh)
 
-	dh, err := newDynamic(sp)
+	dh, err := newLogin(sh, newDynamic())
 	if err != nil {
 		return nil, fmt.Errorf("could not create dynamic content handler: %v", err)
 	}

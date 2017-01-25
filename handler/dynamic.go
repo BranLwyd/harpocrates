@@ -1,21 +1,23 @@
 package handler
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 // dynamicHandler handles all dynamic password content.
-type dynamicHandler struct {
-	sp *sessionProvider
-}
+// It assumes it can get an authenticated session from the request.
+type dynamicHandler struct{}
 
-func newDynamic(sp *sessionProvider) (http.Handler, error) {
-	return &dynamicHandler{
-		sp: sp,
-	}, nil
+func newDynamic() http.Handler {
+	return &dynamicHandler{}
 }
 
 func (dh dynamicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	sess := dh.sp.GetSession(w, r)
+	sess := sessionFrom(r)
 	if sess == nil {
+		log.Printf("Could not get authenticated session in password handler")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -15,16 +16,21 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-// sessionProvider handles getting an authenticated session for the user,
-// either by retrieving an existing session from the user's session ID cookie,
-// or by prompting the user for credentials to create a new session.
-type sessionProvider struct {
+type handlerContextKey int
+
+const sessionContextKey handlerContextKey = 0
+
+// loginHandler handles getting an authenticated session for the user session.
+// If the user is already logged in, it adds the authenticated session to the
+// request context and runs a wrapped handler.
+type loginHandler struct {
+	hh          http.Handler
 	sh          *session.Handler
 	lph         http.Handler
 	u2fAuthTmpl *template.Template
 }
 
-func newSessionProvider(sh *session.Handler) (*sessionProvider, error) {
+func newLogin(sh *session.Handler, hh http.Handler) (*loginHandler, error) {
 	lph, err := newAsset("pages/login-password.html", "text/html; charset=utf-8")
 	if err != nil {
 		return nil, fmt.Errorf("could not create password login handler: %v", err)
@@ -39,33 +45,33 @@ func newSessionProvider(sh *session.Handler) (*sessionProvider, error) {
 		return nil, fmt.Errorf("could not parse U2F authentication template: %v", err)
 	}
 
-	return &sessionProvider{
+	return &loginHandler{
+		hh:          hh,
 		sh:          sh,
 		lph:         lph,
 		u2fAuthTmpl: u2fAuthTmpl,
 	}, nil
 }
 
-// GetSession either returns an existing session based on the user's session ID
-// cookie (and does not touch the ResponseWriter), or uses the ResponseWriter
-// to prompt the user for their password or U2F authentication before returning
-// nil.
-func (sp sessionProvider) GetSession(w http.ResponseWriter, r *http.Request) *session.Session {
-	// If there is an sid with an authenticated session attached, return it.
+func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// If there is an sid with an authenticated session attached, add the
+	// session to the context and run the wrapped handler.
 	sid, err := sessionIDFromRequest(r)
 	if err != nil {
 		log.Printf("Could not get session ID: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return nil
+		return
 	}
-	sess, err := sp.sh.GetSession(sid)
+	sess, err := lh.sh.GetSession(sid)
 	if err != nil && err != session.ErrNoSession {
 		log.Printf("Could not get session: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return nil
+		return
 	}
 	if sess != nil && sess.GetState() == session.AUTHENTICATED {
-		return sess
+		r = r.WithContext(context.WithValue(r.Context(), sessionContextKey, sess))
+		lh.hh.ServeHTTP(w, r)
+		return
 	}
 
 	// No current authenticated session. Handle the login flow.
@@ -74,82 +80,82 @@ func (sp sessionProvider) GetSession(w http.ResponseWriter, r *http.Request) *se
 		switch {
 		case sess == nil:
 			// Ask the user to login.
-			sp.lph.ServeHTTP(w, r)
-			return nil
+			lh.lph.ServeHTTP(w, r)
+			return
 
 		case sess.GetState() == session.U2F_REQUIRED:
 			c, err := sess.GenerateAuthenticateChallenge()
 			if err != nil {
 				log.Printf("Could not create U2F authentication challenge: %v", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return nil
+				return
 			}
 			req := c.SignRequest(sess.GetRegistrations())
 
 			var buf bytes.Buffer
-			if err := sp.u2fAuthTmpl.Execute(&buf, req); err != nil {
+			if err := lh.u2fAuthTmpl.Execute(&buf, req); err != nil {
 				log.Printf("Could not execute U2F authentication template: %v", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return nil
+				return
 			}
 			newStatic(buf.String(), "text/html; charset=utf-8").ServeHTTP(w, r)
-			return nil
+			return
 
 		default:
 			// This should not be able to occur.
 			log.Printf("Could not login: session in unexpected state %s", sess.GetState())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return nil
+			return
 		}
 
 	case http.MethodPost:
 		// If the user is posting some data with "login" action, try to password auth.
 		switch r.FormValue("action") {
 		case "login":
-			sid, _, err := sp.sh.CreateSession(r.FormValue("pass"))
+			sid, _, err := lh.sh.CreateSession(r.FormValue("pass"))
 			if err == session.ErrWrongPassphrase {
 				http.Redirect(w, r, r.RequestURI, http.StatusFound)
-				return nil
+				return
 			}
 			if err != nil {
 				log.Printf("Could not create session: %v", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return nil
+				return
 			}
 			addSessionIDToRequest(w, sid)
 			http.Redirect(w, r, r.RequestURI, http.StatusFound)
-			return nil
+			return
 
 		case "u2f-auth":
 			if sess == nil {
 				http.Redirect(w, r, r.RequestURI, http.StatusFound)
-				return nil
+				return
 			}
 
 			var resp u2f.SignResponse
 			if err := json.Unmarshal([]byte(r.FormValue("response")), &resp); err != nil {
 				log.Printf("Could not parse U2F authentication response: %v", err)
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return nil
+				return
 			}
 
 			if err := sess.U2FAuthenticate(resp); err != nil && err != session.ErrU2FAuthenticationFailed {
 				log.Printf("Could not U2F authenticate: %v", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return nil
+				return
 			}
 			http.Redirect(w, r, r.RequestURI, http.StatusFound)
-			return nil
+			return
 
 		default:
 			// User's session probably timed out. Forward to get standard login flow.
 			http.Redirect(w, r, r.RequestURI, http.StatusFound)
-			return nil
+			return
 		}
 
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return nil
+		return
 	}
 }
 
@@ -184,4 +190,9 @@ func sessionIDFromRequest(r *http.Request) (string, error) {
 		}
 	}
 	return string(sid), nil
+}
+
+func sessionFrom(r *http.Request) *session.Session {
+	sess, _ := r.Context().Value(sessionContextKey).(*session.Session)
+	return sess
 }
