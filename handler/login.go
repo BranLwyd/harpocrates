@@ -20,37 +20,24 @@ type handlerContextKey int
 
 const sessionContextKey handlerContextKey = 0
 
+var (
+	loginPasswordHandler = must(newAsset("pages/login-password.html", "text/html; charset=utf-8"))
+	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(static.MustAsset("templates/u2f-authenticate.html"))))
+)
+
 // loginHandler handles getting an authenticated session for the user session.
 // If the user is already logged in, it adds the authenticated session to the
 // request context and runs a wrapped handler.
 type loginHandler struct {
-	hh          http.Handler
-	sh          *session.Handler
-	lph         http.Handler
-	u2fAuthTmpl *template.Template
+	hh http.Handler
+	sh *session.Handler
 }
 
-func newLogin(sh *session.Handler, hh http.Handler) (*loginHandler, error) {
-	lph, err := newAsset("pages/login-password.html", "text/html; charset=utf-8")
-	if err != nil {
-		return nil, fmt.Errorf("could not create password login handler: %v", err)
-	}
-
-	uat, err := static.Asset("templates/u2f-authenticate.html")
-	if err != nil {
-		return nil, fmt.Errorf("could not get U2F authentication template: %v", err)
-	}
-	u2fAuthTmpl, err := template.New("u2f-authenticate").Parse(string(uat))
-	if err != nil {
-		return nil, fmt.Errorf("could not parse U2F authentication template: %v", err)
-	}
-
+func newLogin(sh *session.Handler, hh http.Handler) *loginHandler {
 	return &loginHandler{
-		hh:          hh,
-		sh:          sh,
-		lph:         lph,
-		u2fAuthTmpl: u2fAuthTmpl,
-	}, nil
+		hh: hh,
+		sh: sh,
+	}
 }
 
 func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -79,11 +66,12 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		switch {
 		case sess == nil:
-			// Ask the user to login.
-			lh.lph.ServeHTTP(w, r)
+			// Ask the user to password authenticate.
+			loginPasswordHandler.ServeHTTP(w, r)
 			return
 
 		case sess.GetState() == session.U2F_REQUIRED:
+			// Ask the user to U2F authenticate.
 			c, err := sess.GenerateAuthenticateChallenge()
 			if err != nil {
 				log.Printf("Could not create U2F authentication challenge: %v", err)
@@ -93,7 +81,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			req := c.SignRequest(sess.GetRegistrations())
 
 			var buf bytes.Buffer
-			if err := lh.u2fAuthTmpl.Execute(&buf, req); err != nil {
+			if err := loginU2FAuthTmpl.Execute(&buf, req); err != nil {
 				log.Printf("Could not execute U2F authentication template: %v", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return

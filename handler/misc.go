@@ -10,6 +10,13 @@ import (
 	"../static"
 )
 
+func must(h http.Handler, err error) http.Handler {
+	if err != nil {
+		panic(err)
+	}
+	return h
+}
+
 // staticHandler serves static content from memory.
 type staticHandler struct {
 	content     string
