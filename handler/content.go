@@ -2,39 +2,29 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"../session"
 )
 
-func NewContent(sh *session.Handler) (http.Handler, error) {
+var (
+	contentStyleHandler  = must(newAsset("etc/style.css", "text/css; charset=utf-8"))
+	contentRobotsHandler = must(newAsset("etc/robots.txt", "text/plain; charset=utf-8"))
+	contentU2FAPIHandler = must(newAsset("etc/u2f-api.js", "application/javascript"))
+)
+
+func NewContent(sh *session.Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// Static content handlers.
 	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusFound)))
-
-	styleHandler, err := newAsset("etc/style.css", "text/css; charset=utf-8")
-	if err != nil {
-		return nil, fmt.Errorf("could not create style handler: %v", err)
-	}
-	mux.Handle("/style.css", styleHandler)
-
-	robotsHandler, err := newAsset("etc/robots.txt", "text/plain; charset=utf-8")
-	if err != nil {
-		return nil, fmt.Errorf("could not create robots handler: %v", err)
-	}
-	mux.Handle("/robots.txt", robotsHandler)
-
-	u2fAPIHandler, err := newAsset("etc/u2f-api.js", "application/javascript")
-	if err != nil {
-		return nil, fmt.Errorf("could not create U2F API handler: %v", err)
-	}
-	mux.Handle("/u2f-api.js", u2fAPIHandler)
+	mux.Handle("/style.css", contentStyleHandler)
+	mux.Handle("/robots.txt", contentRobotsHandler)
+	mux.Handle("/u2f-api.js", contentU2FAPIHandler)
 
 	// Dynamic content handlers.
 	mux.Handle("/register", newLogin(sh, newRegister()))
 	mux.Handle("/p/", newLogin(sh, newDynamic()))
 
-	return mux, nil
+	return mux
 }
