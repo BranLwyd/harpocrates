@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	contentStyleHandler  = must(newAsset("etc/style.css", "text/css; charset=utf-8"))
-	contentRobotsHandler = must(newAsset("etc/robots.txt", "text/plain; charset=utf-8"))
-	contentU2FAPIHandler = must(newAsset("etc/u2f-api.js", "application/javascript"))
+	contentStyleHandler  = must(newCacheableAsset("etc/style.css", "text/css; charset=utf-8"))
+	contentRobotsHandler = must(newCacheableAsset("etc/robots.txt", "text/plain; charset=utf-8"))
+	contentU2FAPIHandler = must(newCacheableAsset("etc/u2f-api.js", "application/javascript"))
 )
 
 func NewContent(sh *session.Handler) http.Handler {

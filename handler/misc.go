@@ -21,6 +21,7 @@ func must(h http.Handler, err error) http.Handler {
 type staticHandler struct {
 	content     string
 	contentType string
+	modTime     time.Time
 }
 
 func newStatic(content, contentType string) *staticHandler {
@@ -38,9 +39,25 @@ func newAsset(name, contentType string) (*staticHandler, error) {
 	return newStatic(string(assetBytes), contentType), nil
 }
 
+func newCacheableAsset(name, contentType string) (*staticHandler, error) {
+	assetBytes, err := static.Asset(name)
+	if err != nil {
+		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
+	}
+	fi, err := static.AssetInfo(name)
+	if err != nil {
+		return nil, fmt.Errorf("could not get asset %q info: %v", name, err)
+	}
+	return &staticHandler{
+		content:     string(assetBytes),
+		contentType: contentType,
+		modTime:     fi.ModTime(),
+	}, nil
+}
+
 func (sh staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", sh.contentType)
-	http.ServeContent(w, r, "", time.Time{}, strings.NewReader(sh.content))
+	http.ServeContent(w, r, "", sh.modTime, strings.NewReader(sh.content))
 }
 
 // filteredHandler filters a handler to only serve one path; anything else is given a 404.
