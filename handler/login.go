@@ -106,7 +106,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "login":
 			sid, _, err := lh.sh.CreateSession(r.FormValue("pass"))
 			if err == session.ErrWrongPassphrase {
-				http.Redirect(w, r, r.RequestURI, http.StatusFound)
+				http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 				return
 			}
 			if err != nil {
@@ -115,12 +115,12 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			addSessionIDToRequest(w, sid)
-			http.Redirect(w, r, r.RequestURI, http.StatusFound)
+			http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 			return
 
 		case "u2f-auth":
 			if sess == nil {
-				http.Redirect(w, r, r.RequestURI, http.StatusFound)
+				http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 				return
 			}
 
@@ -136,12 +136,12 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
-			http.Redirect(w, r, r.RequestURI, http.StatusFound)
+			http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 			return
 
 		default:
 			// User's session probably timed out. Forward to get standard login flow.
-			http.Redirect(w, r, r.RequestURI, http.StatusFound)
+			http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 			return
 		}
 

@@ -17,7 +17,7 @@ func NewContent(sh *session.Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// Static content handlers.
-	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusFound)))
+	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusSeeOther)))
 	mux.Handle("/style.css", contentStyleHandler)
 	mux.Handle("/robots.txt", contentRobotsHandler)
 	mux.Handle("/u2f-api.js", contentU2FAPIHandler)
