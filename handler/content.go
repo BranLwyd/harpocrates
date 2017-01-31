@@ -24,7 +24,7 @@ func NewContent(sh *session.Handler) http.Handler {
 
 	// Dynamic content handlers.
 	mux.Handle("/register", newLogin(sh, newRegister()))
-	mux.Handle("/p/", newLogin(sh, newDynamic()))
+	mux.Handle("/p/", newLogin(sh, newPassword()))
 
 	return mux
 }

@@ -5,15 +5,15 @@ import (
 	"net/http"
 )
 
-// dynamicHandler handles all dynamic password content.
+// passwordHandler handles all password content (i.e. the main UI).
 // It assumes it can get an authenticated session from the request.
-type dynamicHandler struct{}
+type passwordHandler struct{}
 
-func newDynamic() http.Handler {
-	return &dynamicHandler{}
+func newPassword() http.Handler {
+	return &passwordHandler{}
 }
 
-func (dh dynamicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sess := sessionFrom(r)
 	if sess == nil {
 		log.Printf("Could not get authenticated session in password handler")
