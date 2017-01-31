@@ -90,7 +90,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
-			newStatic(buf.String(), "text/html; charset=utf-8").ServeHTTP(w, r)
+			newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 			return
 
 		default:

@@ -48,7 +48,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		newStatic(buf.String(), "text/html; charset=utf-8").ServeHTTP(w, r)
+		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 
 	case http.MethodPost:
 		c, err := sess.GetRegisterChallenge()
@@ -82,7 +82,9 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		newStatic(base64.RawStdEncoding.EncodeToString(regBytes), "text/plain; charset=utf-8").ServeHTTP(w, r)
+		regB64 := make([]byte, base64.RawStdEncoding.EncodedLen(len(regBytes)))
+		base64.RawStdEncoding.Encode(regB64, regBytes)
+		newStatic(regB64, "text/plain; charset=utf-8").ServeHTTP(w, r)
 
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)

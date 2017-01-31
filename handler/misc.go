@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,12 +20,12 @@ func must(h http.Handler, err error) http.Handler {
 
 // staticHandler serves static content from memory.
 type staticHandler struct {
-	content     string
+	content     []byte
 	contentType string
 	modTime     time.Time
 }
 
-func newStatic(content, contentType string) *staticHandler {
+func newStatic(content []byte, contentType string) *staticHandler {
 	return &staticHandler{
 		content:     content,
 		contentType: contentType,
@@ -32,15 +33,15 @@ func newStatic(content, contentType string) *staticHandler {
 }
 
 func newAsset(name, contentType string) (*staticHandler, error) {
-	assetBytes, err := static.Asset(name)
+	asset, err := static.Asset(name)
 	if err != nil {
 		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
 	}
-	return newStatic(string(assetBytes), contentType), nil
+	return newStatic(asset, contentType), nil
 }
 
 func newCacheableAsset(name, contentType string) (*staticHandler, error) {
-	assetBytes, err := static.Asset(name)
+	asset, err := static.Asset(name)
 	if err != nil {
 		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
 	}
@@ -49,7 +50,7 @@ func newCacheableAsset(name, contentType string) (*staticHandler, error) {
 		return nil, fmt.Errorf("could not get asset %q info: %v", name, err)
 	}
 	return &staticHandler{
-		content:     string(assetBytes),
+		content:     asset,
 		contentType: contentType,
 		modTime:     fi.ModTime(),
 	}, nil
@@ -57,7 +58,7 @@ func newCacheableAsset(name, contentType string) (*staticHandler, error) {
 
 func (sh staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", sh.contentType)
-	http.ServeContent(w, r, "", sh.modTime, strings.NewReader(sh.content))
+	http.ServeContent(w, r, "", sh.modTime, bytes.NewReader(sh.content))
 }
 
 // filteredHandler filters a handler to only serve one path; anything else is given a 404.

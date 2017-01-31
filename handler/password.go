@@ -22,5 +22,5 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: handle logged-in UI
-	staticHandler{content: "Logged in.", contentType: "text/plain; charset=utf-8"}.ServeHTTP(w, r)
+	staticHandler{content: []byte("Logged in."), contentType: "text/plain; charset=utf-8"}.ServeHTTP(w, r)
 }
