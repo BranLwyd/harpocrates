@@ -97,19 +97,20 @@ func (h *Handler) CreateSession(passphrase string) (string, *Session, error) {
 	}
 
 	// Generate session ID.
+	var sID [sessionIDLength]byte
+	if _, err := rand.Read(sID[:]); err != nil {
+		return "", nil, fmt.Errorf("could not generate session ID: %v", err)
+	}
+	sessID := string(sID[:])
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	var sessID string
-	for {
-		// This loop is overwhelmingly likely to run for 1 iteration.
-		var sID [sessionIDLength]byte
+	for _, ok := h.sessions[sessID]; ok; _, ok = h.sessions[sessID] {
+		// This loop body is overwhelmingly likely to never run.
 		if _, err := rand.Read(sID[:]); err != nil {
 			return "", nil, fmt.Errorf("could not generate session ID: %v", err)
 		}
 		sessID = string(sID[:])
-		if _, ok := h.sessions[sessID]; !ok {
-			break
-		}
 	}
 
 	// Start reaper timer and return.
