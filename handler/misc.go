@@ -96,12 +96,16 @@ func NewLogging(logName string, h http.Handler) http.Handler {
 }
 
 func (lh loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Strip port from remote address, as the client port is not useful information.
+	log.Printf("[%s] %s requested %s", lh.logName, clientIP(r), r.RequestURI)
+	lh.h.ServeHTTP(w, r)
+}
+
+func clientIP(r *http.Request) string {
+	// Strip port from remote address.
 	ra := r.RemoteAddr
 	idx := strings.LastIndex(ra, ":")
 	if idx != -1 {
 		ra = ra[:idx]
 	}
-	log.Printf("[%s] %s requested %s", lh.logName, ra, r.RequestURI)
-	lh.h.ServeHTTP(w, r)
+	return ra
 }

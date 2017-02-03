@@ -104,7 +104,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// If the user is posting some data with "login" action, try to password auth.
 		switch r.FormValue("action") {
 		case "login":
-			sid, _, err := lh.sh.CreateSession(r.FormValue("pass"))
+			sid, _, err := lh.sh.CreateSession(clientIP(r), r.FormValue("pass"))
 			if err == session.ErrWrongPassphrase {
 				http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 				return

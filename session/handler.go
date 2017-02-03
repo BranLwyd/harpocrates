@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/openpgp/packet"
 
 	"../password"
+	"../rate"
 )
 
 const (
@@ -41,10 +42,11 @@ type Handler struct {
 	baseDir          string             // base directory containing password entries
 	appID            string             // U2F app ID
 	registrations    []u2f.Registration // U2F device registrations
+	rateLimiter      rate.Limiter       // rate limiter for creating new sessions
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *CounterStore) (*Handler, error) {
+func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *CounterStore, newSessionRate float64) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
@@ -70,13 +72,19 @@ func NewHandler(serializedEntity, baseDir, host string, registrations []string, 
 		appID:            fmt.Sprintf("https://%s", host),
 		registrations:    regs,
 		counters:         cs,
+		rateLimiter:      rate.NewLimiter(newSessionRate, 1),
 	}, nil
 }
 
 // CreateSession attempts to create a new session, using the given passphrase.
 // It returns the new session's ID and the session, or ErrWrongPassphrase if
 // authentication occurs, and other errors if they occur.
-func (h *Handler) CreateSession(passphrase string) (string, *Session, error) {
+func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, error) {
+	// Respect rate limit.
+	if err := h.rateLimiter.Wait(clientID); err != nil {
+		return "", nil, fmt.Errorf("couldn't wait for rate limiter: %v", err)
+	}
+
 	// Read entity, decrypt keys using passphrase, create password store.
 	entity, err := openpgp.ReadEntity(packet.NewReader(strings.NewReader(h.serializedEntity)))
 	if err != nil {
