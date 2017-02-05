@@ -119,7 +119,7 @@ func KeyID(baseDir string) (_ string, retErr error) {
 
 // List returns all of the entries currently existing in the password store in
 // lexical order. Entries contained in a subdirectory take the form
-// path/to/entry-name.
+// /path/to/entry-name.
 func (s *Store) List() (entries []string, retErr error) {
 	defer annotateError("could not list", &retErr)
 	if err := filepath.Walk(s.baseDir, func(path string, info os.FileInfo, inErr error) error {
@@ -132,7 +132,7 @@ func (s *Store) List() (entries []string, retErr error) {
 			if err != nil {
 				return err
 			}
-			entries = append(entries, entry)
+			entries = append(entries, "/"+entry)
 		}
 		return nil
 	}); err != nil {

@@ -14,8 +14,6 @@ body {
   max-width: 939px;
   width: calc(80% - 138px);
   border: 1px solid black;
-
-  line-height: 24px;
 }
 
 p {
