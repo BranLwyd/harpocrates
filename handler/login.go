@@ -68,13 +68,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// The user has a session. If this page needs additional U2F
 	// authentication, prompt for it.
-	needsU2F, err := lh.needsU2F(sess, path.Clean(r.URL.Path))
-	if err != nil {
-		log.Printf("Could not determine if U2F needed: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	if needsU2F {
+	if lh.needsU2F(sess, r.URL.Path) {
 		lh.serveU2FHTTP(w, r, sess)
 		return
 	}
@@ -114,35 +108,28 @@ func (lh loginHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (lh loginHandler) needsU2F(sess *session.Session, path string) (bool, error) {
-	switch {
-	case path == "/register":
-		// The registration page is available without U2F if there are
-		// no U2F registrations. Otherwise, allow if any path has been
-		// authenticated.
-		if len(sess.GetRegistrations()) == 0 {
-			return false, nil
-		}
-		return !sess.IsU2FAuthenticated(), nil
+func (lh loginHandler) needsU2F(sess *session.Session, p string) bool {
+	// Check for trailing slash before cleaning, since path.Clean removes
+	// any trailing slashes.
+	isEntryRequest := !strings.HasSuffix(p, "/")
+	p = path.Clean(p)
 
-	case strings.HasPrefix(path, "/p/"):
+	switch {
+	case strings.HasPrefix(p, "/p/") && isEntryRequest:
 		// Entries require per-entry authentication.
-		// Directories require any path to have been authenticated.
-		entryPath := strings.TrimPrefix(path, "/p/")
-		entryPaths, err := sess.GetStore().List()
-		if err != nil {
-			return false, fmt.Errorf("could not get list of entries: %v", err)
+		return !sess.IsU2FAuthenticatedFor(p)
+
+	case p == "/register":
+		// The registration page is available without U2F if there are
+		// no U2F registrations.
+		if len(sess.GetRegistrations()) == 0 {
+			return false
 		}
-		for _, ep := range entryPaths {
-			if entryPath == ep {
-				return !sess.IsU2FAuthenticatedFor(path), nil
-			}
-		}
-		return !sess.IsU2FAuthenticated(), nil
+		fallthrough
 
 	default:
 		// Other pages require any path to have been authenticated.
-		return !sess.IsU2FAuthenticated(), nil
+		return !sess.IsU2FAuthenticated()
 	}
 }
 
