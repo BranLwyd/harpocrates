@@ -2,10 +2,12 @@
 package session
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -15,12 +17,14 @@ import (
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 
+	"../alert"
 	"../password"
 	"../rate"
 )
 
 const (
 	sessionIDLength = 16
+	alertTimeLimit  = 10 * time.Second
 )
 
 var (
@@ -43,10 +47,11 @@ type Handler struct {
 	appID            string             // U2F app ID
 	registrations    []u2f.Registration // U2F device registrations
 	rateLimiter      rate.Limiter       // rate limiter for creating new sessions
+	alerter          alert.Alerter      // used to notify user of alerts
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *CounterStore, newSessionRate float64) (*Handler, error) {
+func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *CounterStore, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
@@ -73,6 +78,7 @@ func NewHandler(serializedEntity, baseDir, host string, registrations []string, 
 		registrations:    regs,
 		counters:         cs,
 		rateLimiter:      rate.NewLimiter(newSessionRate, 1),
+		alerter:          alerter,
 	}, nil
 }
 
@@ -125,13 +131,14 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	state := U2F_REQUIRED
 	if len(h.registrations) == 0 {
 		state = AUTHENTICATED
+		h.alert(alert.LOGIN, "New session authenticated.")
 	}
 	sess := &Session{
-		h:               h,
-		passwordStore:   store,
-		state:           state,
-		expirationTimer: time.AfterFunc(h.sessionDuration, func() { h.CloseSession(sessID) }),
+		h:             h,
+		passwordStore: store,
+		state:         state,
 	}
+	sess.expirationTimer = time.AfterFunc(h.sessionDuration, func() { h.timeoutSession(sessID, sess) })
 	h.sessions[sessID] = sess
 	return sessID, sess, nil
 }
@@ -159,16 +166,36 @@ func (h *Handler) GetSession(sessionID string) (*Session, error) {
 
 // CloseSession closes an existing session, freeing all resources used by the
 // session.
-func (h *Handler) CloseSession(sessionID string) {
+func (h *Handler) CloseSession(sessID string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if sess := h.sessions[sessionID]; sess != nil {
+	if sess := h.sessions[sessID]; sess != nil {
 		sess.expirationTimer.Stop()
-		delete(h.sessions, sessionID)
+		delete(h.sessions, sessID)
 	}
 }
 
-// state represents the possible states of an existing session.
+func (h *Handler) timeoutSession(sessID string, sess *Session) {
+	h.CloseSession(sessID)
+
+	sess.mu.Lock()
+	defer sess.mu.Unlock()
+	if sess.state != AUTHENTICATED {
+		h.alert(alert.TIMEOUT_UNAUTHENTICATED, fmt.Sprintf("Session timed out in unauthenticated state %s.", sess.state))
+	}
+}
+
+func (h Handler) alert(code alert.Code, details string) {
+	go func() {
+		ctx, c := context.WithTimeout(context.Background(), alertTimeLimit)
+		defer c()
+		if err := h.alerter.Alert(ctx, code, details); err != nil {
+			log.Printf("Could not send alert (%s %q): %v", code, details, err)
+		}
+	}()
+}
+
+// State represents the possible states of an existing session.
 // Sessions aren't created until password authentication is successful,
 // so there is no state for requiring password authentication.
 type State uint8
@@ -235,6 +262,7 @@ func (s *Session) U2FAuthenticate(sr u2f.SignResponse) error {
 				return fmt.Errorf("could not set new counter value: %v", err)
 			}
 
+			s.h.alert(alert.LOGIN, fmt.Sprintf("New session authenticated."))
 			s.state = AUTHENTICATED
 			s.challenge = nil
 			return nil
