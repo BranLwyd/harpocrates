@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	sessionIDLength = 16
+	sessionIDLength = 32
 	alertTimeLimit  = 10 * time.Second
 )
 
