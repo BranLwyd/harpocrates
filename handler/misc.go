@@ -75,7 +75,7 @@ func newFiltered(allowedPath string, h http.Handler) http.Handler {
 }
 
 func (fh filteredHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.RequestURI != fh.allowedPath {
+	if r.URL.Path != fh.allowedPath {
 		http.NotFound(w, r)
 	} else {
 		fh.h.ServeHTTP(w, r)
@@ -96,7 +96,7 @@ func NewLogging(logName string, h http.Handler) http.Handler {
 }
 
 func (lh loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[%s] %s requested %s", lh.logName, clientIP(r), r.RequestURI)
+	log.Printf("[%s] %s requested %s", lh.logName, clientIP(r), r.URL.RequestURI())
 	lh.h.ServeHTTP(w, r)
 }
 

@@ -128,15 +128,10 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	}
 
 	// Start reaper timer and return.
-	state := U2F_REQUIRED
-	if len(h.registrations) == 0 {
-		state = AUTHENTICATED
-		h.alert(alert.LOGIN, "New session authenticated.")
-	}
 	sess := &Session{
-		h:             h,
-		passwordStore: store,
-		state:         state,
+		h:           h,
+		store:       store,
+		authedPaths: map[string]struct{}{},
 	}
 	sess.expirationTimer = time.AfterFunc(h.sessionDuration, func() { h.timeoutSession(sessID, sess) })
 	h.sessions[sessID] = sess
@@ -152,14 +147,17 @@ func (h *Handler) GetSession(sessionID string) (*Session, error) {
 	if sess := h.sessions[sessionID]; sess != nil {
 		sess.mu.RLock()
 		defer sess.mu.RUnlock()
-		if sess.state == AUTHENTICATED {
-			if sess.expirationTimer.Stop() {
-				sess.expirationTimer.Reset(h.sessionDuration)
-				return sess, nil
+
+		// Only reset the timer if the user has completed U2F
+		// authentication, to ensure that partially-authenticated users
+		// can't keep a session open indefinitely.
+		if len(sess.authedPaths) > 0 {
+			if !sess.expirationTimer.Stop() {
+				return nil, ErrNoSession
 			}
-		} else {
-			return sess, nil
+			sess.expirationTimer.Reset(h.sessionDuration)
 		}
+		return sess, nil
 	}
 	return nil, ErrNoSession
 }
@@ -177,11 +175,8 @@ func (h *Handler) CloseSession(sessID string) {
 
 func (h *Handler) timeoutSession(sessID string, sess *Session) {
 	h.CloseSession(sessID)
-
-	sess.mu.Lock()
-	defer sess.mu.Unlock()
-	if sess.state != AUTHENTICATED {
-		h.alert(alert.TIMEOUT_UNAUTHENTICATED, fmt.Sprintf("Session timed out in unauthenticated state %s.", sess.state))
+	if !sess.IsU2FAuthenticated() {
+		h.alert(alert.TIMEOUT_UNAUTHENTICATED, "Session timed out without completing U2F authentication.")
 	}
 }
 
@@ -195,63 +190,77 @@ func (h Handler) alert(code alert.Code, details string) {
 	}()
 }
 
-// State represents the possible states of an existing session.
-// Sessions aren't created until password authentication is successful,
-// so there is no state for requiring password authentication.
-type State uint8
-
-const (
-	U2F_REQUIRED State = iota
-	AUTHENTICATED
-)
-
-func (s State) String() string {
-	switch s {
-	case U2F_REQUIRED:
-		return "U2F_REQUIRED"
-	case AUTHENTICATED:
-		return "AUTHENTICATED"
-	default:
-		return "UNKNOWN"
-	}
-}
-
 // Session stores all data associated with a given active user session.
 // It is safe for concurrent use from multiple goroutines.
 type Session struct {
 	h               *Handler
-	passwordStore   *password.Store
+	store           *password.Store
 	expirationTimer *time.Timer
 
-	mu        sync.RWMutex // protects state, challenge
-	state     State
-	challenge *u2f.Challenge
+	mu            sync.RWMutex // protects all fields below
+	authedPaths   map[string]struct{}
+	challenge     *u2f.Challenge
+	challengePath string
 }
 
-// GetStore returns the password store associated with this session.  The
-// session must be in state AUTHENTICATED.
-func (s Session) GetStore() (*password.Store, error) {
+// GetStore returns the password store associated with this session.
+func (s Session) GetStore() *password.Store {
+	return s.store
+}
+
+// IsU2FAuthenticated determines if the user has authenticated with U2F for
+// any path.
+func (s *Session) IsU2FAuthenticated() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.state != AUTHENTICATED {
-		return nil, fmt.Errorf("in state %s, expected state AUTHENTICATED", s.state)
-	}
-	return s.passwordStore, nil
+	return len(s.authedPaths) > 0
 }
 
-func (s Session) GetState() State {
+// IsU2FAuthenticatedFor determines if the user has authenticated with U2F for
+// the given path.
+func (s *Session) IsU2FAuthenticatedFor(path string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.state
+	_, ok := s.authedPaths[path]
+	return ok
 }
 
-func (s *Session) U2FAuthenticate(sr u2f.SignResponse) error {
+// GenerateU2FChallenge generates a new U2F challenge for the given path.
+// It replaces any previous U2F challenges that may exist for this or any other
+// paths.
+func (s *Session) GenerateU2FChallenge(path string) (*u2f.Challenge, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.state != U2F_REQUIRED {
-		return fmt.Errorf("in state %s, expected state U2F_REQUIRED", s.state)
+	c, err := u2f.NewChallenge(s.h.appID, []string{s.h.appID})
+	if err != nil {
+		return nil, fmt.Errorf("could not generate challenge: %v", err)
 	}
-	if s.challenge == nil {
+	s.challenge = c
+	s.challengePath = path
+	return c, nil
+}
+
+// GetU2FChallenge gets the existing U2F challenge for the given path.
+// It returns ErrNoChallenge if there is no existing U2F challenge for the
+// given path.
+func (s Session) GetU2FChallenge(path string) (*u2f.Challenge, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.challengePath != path || s.challenge == nil {
+		return nil, ErrNoChallenge
+	}
+	return s.challenge, nil
+}
+
+// AuthenticateU2FResponse authenticates the user for the given path with the
+// given U2F signing response. It returns ErrNoChallenge if there is no
+// existing challenge for the given path, and ErrU2FAuthenticationFailed if it
+// was not possible to authenticate the user with the given U2F signing
+// response.
+func (s *Session) AuthenticateU2FResponse(path string, sr u2f.SignResponse) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.challengePath != path || s.challenge == nil {
 		return ErrNoChallenge
 	}
 	ctr := s.h.counters.Get(sr.KeyHandle)
@@ -262,67 +271,16 @@ func (s *Session) U2FAuthenticate(sr u2f.SignResponse) error {
 				return fmt.Errorf("could not set new counter value: %v", err)
 			}
 
-			s.h.alert(alert.LOGIN, fmt.Sprintf("New session authenticated."))
-			s.state = AUTHENTICATED
+			if len(s.authedPaths) == 0 {
+				s.h.alert(alert.LOGIN, fmt.Sprintf("New session authenticated."))
+			}
+			s.authedPaths[path] = struct{}{}
 			s.challenge = nil
+			s.challengePath = ""
 			return nil
 		}
 	}
 	return ErrU2FAuthenticationFailed
-}
-
-func (s *Session) generateChallenge(requiredState State) (*u2f.Challenge, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.state != requiredState {
-		return nil, fmt.Errorf("in state %s, expected state %s", s.state, requiredState)
-	}
-	c, err := u2f.NewChallenge(s.h.appID, []string{s.h.appID})
-	if err != nil {
-		return nil, fmt.Errorf("could not generate challenge: %v", err)
-	}
-	s.challenge = c
-	return c, nil
-}
-
-func (s Session) getChallenge(requiredState State) (*u2f.Challenge, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if s.state != requiredState {
-		return nil, fmt.Errorf("in state %s, expected state %s", s.state, requiredState)
-	}
-	if s.challenge == nil {
-		return nil, ErrNoChallenge
-	}
-	return s.challenge, nil
-}
-
-// GenerateAuthenticateChallenge generates a new challenge for U2F
-// authentication. This replaces any previous challenge that may exist. The
-// session must be in state U2F_REQUIRED.
-func (s *Session) GenerateAuthenticateChallenge() (*u2f.Challenge, error) {
-	return s.generateChallenge(U2F_REQUIRED)
-}
-
-// GetAuthenticateChallenge gets the current challenge for U2F authentication.
-// It returns ErrNoChallenge if there is no current challenge. The session must
-// be in state U2F_REQUIRED.
-func (s Session) GetAuthenticateChallenge() (*u2f.Challenge, error) {
-	return s.getChallenge(U2F_REQUIRED)
-}
-
-// GenerateRegisterChallenge generates a new challenge for U2F registration.
-// This replaces any previous challenge that may exist.  The session must be in
-// state AUTHENTICATED.
-func (s *Session) GenerateRegisterChallenge() (*u2f.Challenge, error) {
-	return s.generateChallenge(AUTHENTICATED)
-}
-
-// GetRegisterChallenge gets the current challenge for U2F registration.  It
-// returns ErrNoChallenge if there is no current challenge.  The session must
-// be in state AUTHENTICATED.
-func (s Session) GetRegisterChallenge() (*u2f.Challenge, error) {
-	return s.getChallenge(AUTHENTICATED)
 }
 
 // GetRegistrations gets the set of registrations for U2F devices.

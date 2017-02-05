@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	"../session"
 	"../static"
@@ -45,8 +46,8 @@ func newLogin(sh *session.Handler, hh http.Handler) *loginHandler {
 }
 
 func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// If there is an sid with an authenticated session attached, add the
-	// session to the context and run the wrapped handler.
+	// Try to get an existing session with the session ID from the user's
+	// cookie; if it doesn't exist, start the password login flow.
 	sid, err := sessionIDFromRequest(r)
 	if err != nil {
 		log.Printf("Could not get session ID: %v", err)
@@ -59,95 +60,129 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	if sess != nil && sess.GetState() == session.AUTHENTICATED {
-		r = r.WithContext(context.WithValue(r.Context(), sessionContextKey, sess))
-		lh.hh.ServeHTTP(w, r)
+	if sess == nil {
+		lh.servePasswordHTTP(w, r)
 		return
 	}
 
-	// No current authenticated session. Handle the login flow.
+	// The user has a session. If this page needs additional U2F
+	// authentication, prompt for it.
+	needsU2F, err := lh.needsU2F(sess, r.URL.Path)
+	if err != nil {
+		log.Printf("Could not determine if U2F needed: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	if needsU2F {
+		lh.serveU2FHTTP(w, r, sess)
+		return
+	}
+
+	// User is fully authenticated for this page. Add the session to the request
+	// context and run the wrapped handler.
+	r = r.WithContext(context.WithValue(r.Context(), sessionContextKey, sess))
+	lh.hh.ServeHTTP(w, r)
+}
+
+func (lh loginHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		switch {
-		case sess == nil:
-			// Ask the user to password authenticate.
-			loginPasswordHandler.ServeHTTP(w, r)
+		loginPasswordHandler.ServeHTTP(w, r)
+
+	case http.MethodPost:
+		if r.FormValue("action") != "login" {
+			// User's session probably timed out. Forward to get standard login flow.
+			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 			return
-
-		case sess.GetState() == session.U2F_REQUIRED:
-			// Ask the user to U2F authenticate.
-			c, err := sess.GenerateAuthenticateChallenge()
-			if err != nil {
-				log.Printf("Could not create U2F authentication challenge: %v", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			req := c.SignRequest(sess.GetRegistrations())
-
-			var buf bytes.Buffer
-			if err := loginU2FAuthTmpl.Execute(&buf, req); err != nil {
-				log.Printf("Could not execute U2F authentication template: %v", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+		}
+		sid, _, err := lh.sh.CreateSession(clientIP(r), r.FormValue("pass"))
+		if err == session.ErrWrongPassphrase {
+			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 			return
-
-		default:
-			// This should not be able to occur.
-			log.Printf("Could not login: session in unexpected state %s", sess.GetState())
+		}
+		if err != nil {
+			log.Printf("Could not create session: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-
-	case http.MethodPost:
-		// If the user is posting some data with "login" action, try to password auth.
-		switch r.FormValue("action") {
-		case "login":
-			sid, _, err := lh.sh.CreateSession(clientIP(r), r.FormValue("pass"))
-			if err == session.ErrWrongPassphrase {
-				http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-				return
-			}
-			if err != nil {
-				log.Printf("Could not create session: %v", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			addSessionIDToRequest(w, sid)
-			http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-			return
-
-		case "u2f-auth":
-			if sess == nil {
-				http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-				return
-			}
-
-			var resp u2f.SignResponse
-			if err := json.Unmarshal([]byte(r.FormValue("response")), &resp); err != nil {
-				log.Printf("Could not parse U2F authentication response: %v", err)
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
-			}
-
-			if err := sess.U2FAuthenticate(resp); err != nil && err != session.ErrU2FAuthenticationFailed {
-				log.Printf("Could not U2F authenticate: %v", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-			return
-
-		default:
-			// User's session probably timed out. Forward to get standard login flow.
-			http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-			return
-		}
+		addSessionIDToRequest(w, sid)
+		http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
+	}
+}
+
+func (lh loginHandler) needsU2F(sess *session.Session, path string) (bool, error) {
+	switch {
+	case path == "/register":
+		// The registration page is available without U2F if there are
+		// no U2F registrations. Otherwise, allow if any path has been
+		// authenticated.
+		if len(sess.GetRegistrations()) == 0 {
+			return false, nil
+		}
+		return !sess.IsU2FAuthenticated(), nil
+
+	case strings.HasPrefix(path, "/p/"):
+		// Entries require per-entry authentication.
+		// Directories require any path to have been authenticated.
+		entryPath := strings.TrimPrefix(path, "/p/")
+		entryPaths, err := sess.GetStore().List()
+		if err != nil {
+			return false, fmt.Errorf("could not get list of entries: %v", err)
+		}
+		for _, ep := range entryPaths {
+			if entryPath == ep {
+				return !sess.IsU2FAuthenticatedFor(path), nil
+			}
+		}
+		return !sess.IsU2FAuthenticated(), nil
+
+	default:
+		// Other pages require any path to have been authenticated.
+		return !sess.IsU2FAuthenticated(), nil
+	}
+}
+
+func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session) {
+	switch r.Method {
+	case http.MethodGet:
+		c, err := sess.GenerateU2FChallenge(r.URL.Path)
+		if err != nil {
+			log.Printf("Could not create U2F authentication challenge: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		req := c.SignRequest(sess.GetRegistrations())
+		var buf bytes.Buffer
+		if err := loginU2FAuthTmpl.Execute(&buf, req); err != nil {
+			log.Printf("Could not execute U2F authentication template: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+
+	case http.MethodPost:
+		if r.FormValue("action") != "u2f-auth" {
+			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
+			return
+		}
+		var resp u2f.SignResponse
+		if err := json.Unmarshal([]byte(r.FormValue("response")), &resp); err != nil {
+			log.Printf("Could not parse U2F authentication response: %v", err)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		if err := sess.AuthenticateU2FResponse(r.URL.Path, resp); err != nil && err != session.ErrU2FAuthenticationFailed {
+			log.Printf("Could not U2F authenticate: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
+
+	default:
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 	}
 }
 

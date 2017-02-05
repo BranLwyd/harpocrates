@@ -34,14 +34,13 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		c, err := sess.GenerateRegisterChallenge()
+		c, err := sess.GenerateU2FChallenge(r.URL.RequestURI())
 		if err != nil {
 			log.Printf("Could not create U2F registration challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		req := u2f.NewWebRegisterRequest(c, sess.GetRegistrations())
-
 		var buf bytes.Buffer
 		if err := u2fRegisterTmpl.Execute(&buf, req); err != nil {
 			log.Printf("Could not execute U2F registration template: %v", err)
@@ -51,7 +50,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 
 	case http.MethodPost:
-		c, err := sess.GetRegisterChallenge()
+		c, err := sess.GetU2FChallenge(r.URL.RequestURI())
 		if err == session.ErrNoChallenge {
 			log.Printf("Got POST to /register without a challenge")
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
