@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path"
 	"strings"
 
 	"../session"
@@ -67,7 +68,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// The user has a session. If this page needs additional U2F
 	// authentication, prompt for it.
-	needsU2F, err := lh.needsU2F(sess, r.URL.Path)
+	needsU2F, err := lh.needsU2F(sess, path.Clean(r.URL.Path))
 	if err != nil {
 		log.Printf("Could not determine if U2F needed: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -148,7 +149,7 @@ func (lh loginHandler) needsU2F(sess *session.Session, path string) (bool, error
 func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session) {
 	switch r.Method {
 	case http.MethodGet:
-		c, err := sess.GenerateU2FChallenge(r.URL.Path)
+		c, err := sess.GenerateU2FChallenge(path.Clean(r.URL.Path))
 		if err != nil {
 			log.Printf("Could not create U2F authentication challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -174,7 +175,7 @@ func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		if err := sess.AuthenticateU2FResponse(r.URL.Path, resp); err != nil && err != session.ErrU2FAuthenticationFailed {
+		if err := sess.AuthenticateU2FResponse(path.Clean(r.URL.Path), resp); err != nil && err != session.ErrU2FAuthenticationFailed {
 			log.Printf("Could not U2F authenticate: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

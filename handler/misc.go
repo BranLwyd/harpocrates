@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ func newFiltered(allowedPath string, h http.Handler) http.Handler {
 }
 
 func (fh filteredHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != fh.allowedPath {
+	if path.Clean(r.URL.Path) != fh.allowedPath {
 		http.NotFound(w, r)
 	} else {
 		fh.h.ServeHTTP(w, r)
