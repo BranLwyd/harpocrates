@@ -40,24 +40,28 @@ func main() {
 	kf := keyFile
 	hn := host
 	cf := ctrFile
+	var se string
 	if *debug {
 		// Debug build uses current directory.
 		pd = "pass/"
-		kf = "key"
 		hn = "localhost:8080"
 		cf = "u2fctr"
+
+		se = string(static.MustAsset("debug/key"))
+	} else {
+		seBytes, err := ioutil.ReadFile(kf)
+		if err != nil {
+			log.Fatalf("Could not read entity: %v", err)
+		}
+		se = string(seBytes)
 	}
 
 	// Create session handler & content handler.
-	se, err := ioutil.ReadFile(kf)
-	if err != nil {
-		log.Fatalf("Could not read entity: %v", err)
-	}
 	cs, err := session.NewCounterStore(cf)
 	if err != nil {
 		log.Fatalf("Could not create U2F counter store: %v", err)
 	}
-	sh, err := session.NewHandler(string(se), pd, hn, []string{u2fReg}, 5*time.Minute, cs, newSessionRate, alert.NewCommand(alertCmd))
+	sh, err := session.NewHandler(se, pd, hn, []string{u2fReg}, 5*time.Minute, cs, newSessionRate, alert.NewCommand(alertCmd))
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
