@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"../alert"
@@ -36,12 +37,11 @@ func main() {
 	// Handle flags.
 	flag.Parse()
 
+	// Prepare dependencies.
 	var cs *session.CounterStore
 	var se string
 	pd := passDir
-	kf := keyFile
 	hn := host
-
 	if *debug {
 		// Debug build uses current directory.
 		pd = "pass/"
@@ -49,8 +49,18 @@ func main() {
 
 		se = string(static.MustAsset("debug/key"))
 		cs = session.NewMemoryCounterStore()
+
+		passDir, err := ioutil.TempDir("", "harpd_debug_")
+		if err != nil {
+			log.Fatalf("Could not create temporary directory: %v", err)
+		}
+		log.Printf("Debug: serving passwords from %q", passDir)
+		if err := static.RestoreAssets(passDir, "debug/passwords"); err != nil {
+			log.Fatalf("Could not prepare password directory: %v", err)
+		}
+		pd = filepath.Join(passDir, "debug/passwords")
 	} else {
-		seBytes, err := ioutil.ReadFile(kf)
+		seBytes, err := ioutil.ReadFile(keyFile)
 		if err != nil {
 			log.Fatalf("Could not read entity: %v", err)
 		}
