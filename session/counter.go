@@ -54,6 +54,14 @@ func NewCounterStore(counterFile string) (*CounterStore, error) {
 	}, nil
 }
 
+// NewMemoryCounterStore creates a new counter store that has no backing file.
+// It should be used only for testing.
+func NewMemoryCounterStore() *CounterStore {
+	return &CounterStore{
+		store: make(map[string]uint32),
+	}
+}
+
 // Get gets the value associated with the given handle. It returns 0 if no such
 // handle exists.
 func (c CounterStore) Get(handle string) uint32 {
@@ -68,45 +76,50 @@ func (c *CounterStore) Set(handle string, val uint32) (retErr error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s := make(map[string]string)
-	for k, v := range c.store {
-		if k == handle {
-			continue
+	// Update file.
+	if c.ctrFile != "" {
+		s := make(map[string]string)
+		for k, v := range c.store {
+			if k == handle {
+				continue
+			}
+			s[k] = strconv.FormatUint(uint64(v), 10)
 		}
-		s[k] = strconv.FormatUint(uint64(v), 10)
-	}
-	if val != 0 {
-		s[handle] = strconv.FormatUint(uint64(val), 10)
-	}
+		if val != 0 {
+			s[handle] = strconv.FormatUint(uint64(val), 10)
+		}
 
-	f, err := ioutil.TempFile(filepath.Dir(c.ctrFile), ".harp_u2fctr")
-	if err != nil {
-		return fmt.Errorf("could not create temporary file: %v", err)
-	}
+		f, err := ioutil.TempFile(filepath.Dir(c.ctrFile), ".harp_u2fctr")
+		if err != nil {
+			return fmt.Errorf("could not create temporary file: %v", err)
+		}
 
-	closeAttempted := false
-	defer func() {
-		if retErr != nil {
-			if !closeAttempted {
-				if err := f.Close(); err != nil {
-					log.Printf("Could not close temporary file: %v", err)
+		closeAttempted := false
+		defer func() {
+			if retErr != nil {
+				if !closeAttempted {
+					if err := f.Close(); err != nil {
+						log.Printf("Could not close temporary file: %v", err)
+					}
+				}
+				if err := os.Remove(f.Name()); err != nil {
+					log.Printf("Could not remove temporary file: %v", err)
 				}
 			}
-			if err := os.Remove(f.Name()); err != nil {
-				log.Printf("Could not remove temporary file: %v", err)
-			}
-		}
-	}()
+		}()
 
-	if err := json.NewEncoder(f).Encode(s); err != nil {
-		return fmt.Errorf("could not write U2F counter file: %v", err)
+		if err := json.NewEncoder(f).Encode(s); err != nil {
+			return fmt.Errorf("could not write U2F counter file: %v", err)
+		}
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("could not close U2F counter file: %v", err)
+		}
+		if err := os.Rename(f.Name(), c.ctrFile); err != nil {
+			return fmt.Errorf("could not rename U2F counter file: %v", err)
+		}
 	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("could not close U2F counter file: %v", err)
-	}
-	if err := os.Rename(f.Name(), c.ctrFile); err != nil {
-		return fmt.Errorf("could not rename U2F counter file: %v", err)
-	}
+
+	// Update in-memory representation.
 	if val == 0 {
 		delete(c.store, handle)
 	} else {
