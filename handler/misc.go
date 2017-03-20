@@ -2,6 +2,8 @@ package handler
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,6 +19,15 @@ func must(h http.Handler, err error) http.Handler {
 		panic(err)
 	}
 	return h
+}
+
+func cspNonce() (string, error) {
+	const cspNonceLength = 16
+	nb := make([]byte, cspNonceLength)
+	if _, err := rand.Read(nb); err != nil {
+		return "", fmt.Errorf("could not get random bytes: %v", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(nb), nil
 }
 
 // staticHandler serves static content from memory.
@@ -60,6 +71,25 @@ func newCacheableAsset(name, contentType string) (*staticHandler, error) {
 func (sh staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", sh.contentType)
 	http.ServeContent(w, r, "", sh.modTime, bytes.NewReader(sh.content))
+}
+
+// secureHeaderHandler adds a few security-oriented headers.
+type secureHeaderHandler struct {
+	h http.Handler
+}
+
+func (shh secureHeaderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	w.Header().Set("Content-Security-Policy", "default-src 'self'")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("X-XSS-Protection", "1; mode=block")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	shh.h.ServeHTTP(w, r)
+}
+
+func NewSecureHeader(h http.Handler) http.Handler {
+	return secureHeaderHandler{h}
 }
 
 // filteredHandler filters a handler to only serve one path; anything else is given a 404.

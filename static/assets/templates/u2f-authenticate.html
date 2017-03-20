@@ -4,7 +4,7 @@
 	<title>Login</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
 	<script type="application/javascript" src="/u2f-api.js"></script>
-	<script type="application/javascript">
+	<script type="application/javascript" nonce="{{.Nonce}}">
 		function signCallback(resp) {
 			// Check error.
 			if (('errorCode' in resp) && (resp.errorCode !== u2f.ErrorCodes['OK'])) {
@@ -28,7 +28,7 @@
 			respEl.form.submit();
 		}
 
-		var req = {{.}};
+		var req = {{.Req}};
 		u2f.sign(req.appId, req.challenge, req.registeredKeys, signCallback);
 	</script>
 </head>

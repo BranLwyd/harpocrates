@@ -47,6 +47,9 @@ func newLogin(sh *session.Handler, hh http.Handler) *loginHandler {
 }
 
 func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Don't allow caching of anything that requires authentication.
+	w.Header().Set("Cache-Control", "no-store")
+
 	// Try to get an existing session with the session ID from the user's
 	// cookie; if it doesn't exist, start the password login flow.
 	sid, err := sessionIDFromRequest(r)
@@ -143,12 +146,24 @@ func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess
 			return
 		}
 		req := c.SignRequest(sess.GetRegistrations())
+
+		nonce, err := cspNonce()
+		if err != nil {
+			log.Printf("Could not create U2F authentication nonce: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
 		var buf bytes.Buffer
-		if err := loginU2FAuthTmpl.Execute(&buf, req); err != nil {
+		if err := loginU2FAuthTmpl.Execute(&buf, struct {
+			Req   *u2f.WebSignRequest
+			Nonce string
+		}{req, nonce}); err != nil {
 			log.Printf("Could not execute U2F authentication template: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Security-Policy", fmt.Sprintf("default-src 'self'; script-src 'self' 'nonce-%s'", nonce))
 		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 
 	case http.MethodPost:
@@ -183,7 +198,12 @@ func addSessionIDToRequest(w http.ResponseWriter, sid string) {
 		HttpOnly: true,
 		Secure:   true,
 	}
-	http.SetCookie(w, c)
+
+	// Hack: add SameSite attribute to cookie, not yet officially supported by Go (https://github.com/golang/go/issues/15867)
+	// TODO: once Go supports SameSite, go back to using http.SetCookie()
+	if v := c.String(); v != "" {
+		w.Header().Add("Set-Cookie", v+"; SameSite=strict")
+	}
 }
 
 func sessionIDFromRequest(r *http.Request) (string, error) {

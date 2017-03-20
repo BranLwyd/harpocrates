@@ -4,7 +4,7 @@
 	<title>Register U2F Device</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
 	<script type="application/javascript" src="/u2f-api.js"></script>
-	<script type="application/javascript">
+	<script type="application/javascript" nonce="{{.Nonce}}">
 		function registerCallback(resp) {
 			// Check error.
 			var el = document.getElementById("message");
@@ -37,7 +37,7 @@
 			xhr.send(JSON.stringify(resp));
 		}
 
-		var req = {{.}};
+		var req = {{.Req}};
 		u2f.register(req.appId, req.registerRequests, req.registeredKeys, registerCallback);
 	</script>
 </head>
