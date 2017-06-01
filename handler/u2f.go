@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -42,24 +41,19 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		req := u2f.NewWebRegisterRequest(c, sess.GetRegistrations())
-
-		nonce, err := cspNonce()
+		reqBytes, err := json.Marshal(req)
 		if err != nil {
-			log.Printf("Could not create U2F registration nonce: %v", err)
+			log.Printf("Could not marshal U2F registration challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		var buf bytes.Buffer
-		if err := u2fRegisterTmpl.Execute(&buf, struct {
-			Req   *u2f.WebRegisterRequest
-			Nonce string
-		}{req, nonce}); err != nil {
+		if err := u2fRegisterTmpl.Execute(&buf, string(reqBytes)); err != nil {
 			log.Printf("Could not execute U2F registration template: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Security-Policy", fmt.Sprintf("default-src 'self'; script-src 'self' 'nonce-%s'", nonce))
 		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 
 	case http.MethodPost:

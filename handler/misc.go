@@ -2,8 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,15 +17,6 @@ func must(h http.Handler, err error) http.Handler {
 		panic(err)
 	}
 	return h
-}
-
-func cspNonce() (string, error) {
-	const cspNonceLength = 16
-	nb := make([]byte, cspNonceLength)
-	if _, err := rand.Read(nb); err != nil {
-		return "", fmt.Errorf("could not get random bytes: %v", err)
-	}
-	return base64.RawURLEncoding.EncodeToString(nb), nil
 }
 
 // staticHandler serves static content from memory.

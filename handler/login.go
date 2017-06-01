@@ -146,24 +146,19 @@ func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess
 			return
 		}
 		req := c.SignRequest(sess.GetRegistrations())
-
-		nonce, err := cspNonce()
+		reqBytes, err := json.Marshal(req)
 		if err != nil {
-			log.Printf("Could not create U2F authentication nonce: %v", err)
+			log.Printf("Could not marshal U2F authentication challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		var buf bytes.Buffer
-		if err := loginU2FAuthTmpl.Execute(&buf, struct {
-			Req   *u2f.WebSignRequest
-			Nonce string
-		}{req, nonce}); err != nil {
+		if err := loginU2FAuthTmpl.Execute(&buf, string(reqBytes)); err != nil {
 			log.Printf("Could not execute U2F authentication template: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Security-Policy", fmt.Sprintf("default-src 'self'; script-src 'self' 'nonce-%s'", nonce))
 		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 
 	case http.MethodPost:

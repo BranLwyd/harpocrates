@@ -8,9 +8,11 @@ import (
 )
 
 var (
-	contentStyleHandler  = must(newCacheableAsset("etc/style.css", "text/css; charset=utf-8"))
-	contentRobotsHandler = must(newCacheableAsset("etc/robots.txt", "text/plain; charset=utf-8"))
-	contentU2FAPIHandler = must(newCacheableAsset("etc/u2f-api.js", "application/javascript"))
+	contentStyleHandler           = must(newCacheableAsset("etc/style.css", "text/css; charset=utf-8"))
+	contentRobotsHandler          = must(newCacheableAsset("etc/robots.txt", "text/plain; charset=utf-8"))
+	contentU2FAPIHandler          = must(newCacheableAsset("etc/u2f-api.js", "application/javascript"))
+	contentU2FAuthenticateHandler = must(newCacheableAsset("etc/u2f-authenticate.js", "application/javascript"))
+	contentU2FRegisterHandler     = must(newCacheableAsset("etc/u2f-register.js", "application/javascript"))
 )
 
 func NewContent(sh *session.Handler) http.Handler {
@@ -21,6 +23,8 @@ func NewContent(sh *session.Handler) http.Handler {
 	mux.Handle("/style.css", contentStyleHandler)
 	mux.Handle("/robots.txt", contentRobotsHandler)
 	mux.Handle("/u2f-api.js", contentU2FAPIHandler)
+	mux.Handle("/u2f-authenticate.js", contentU2FAuthenticateHandler)
+	mux.Handle("/u2f-register.js", contentU2FRegisterHandler)
 
 	// Dynamic content handlers.
 	mux.Handle("/register", newLogin(sh, newRegister()))
