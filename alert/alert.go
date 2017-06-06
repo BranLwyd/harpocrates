@@ -3,6 +3,7 @@ package alert
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -53,5 +54,17 @@ func (ca cmdAlerter) Alert(ctx context.Context, code Code, details string) error
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("alert command %q failed: %v", ca.cmd, err)
 	}
+	return nil
+}
+
+type logAlerter struct{}
+
+// NewLog creates a new alerter that only logs when an alert is fired.
+func NewLog() Alerter {
+	return &logAlerter{}
+}
+
+func (la logAlerter) Alert(ctx context.Context, code Code, details string) error {
+	log.Printf("Alert fired: [%s] %s", code, details)
 	return nil
 }
