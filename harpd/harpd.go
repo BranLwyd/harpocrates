@@ -84,8 +84,34 @@ func main() {
 		if err := json.Unmarshal(cfgBytes, cfg); err != nil {
 			log.Fatalf("Could not parse config file: %v", err)
 		}
-		// TODO: sanity-check config field values
 
+		// Sanity check config values.
+		if cfg.HostName == "" {
+			log.Fatalf("host_name is required in config")
+		}
+		if cfg.Email == "" {
+			log.Fatalf("email is required in config")
+		}
+		if cfg.CertDir == "" {
+			log.Fatalf("cert_dir is required in config")
+		}
+		if cfg.PassDir == "" {
+			log.Fatalf("pass_dir is required in config")
+		}
+		if cfg.KeyFile == "" {
+			log.Fatalf("key_file is required in config")
+		}
+		if cfg.CounterFile == "" {
+			log.Fatalf("counter_file is required in config")
+		}
+		if cfg.SessionDurationSecs <= 0 {
+			log.Fatalf("session_duration_s must be positive")
+		}
+		if cfg.NewSessionRate <= 0 {
+			log.Fatalf("new_session_rate must be positive")
+		}
+
+		// Create serialized entity, counter store based on config.
 		seBytes, err := ioutil.ReadFile(cfg.KeyFile)
 		if err != nil {
 			log.Fatalf("Could not read key file: %v", err)
