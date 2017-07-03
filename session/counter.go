@@ -64,7 +64,7 @@ func NewMemoryCounterStore() *CounterStore {
 
 // Get gets the value associated with the given handle. It returns 0 if no such
 // handle exists.
-func (c CounterStore) Get(handle string) uint32 {
+func (c *CounterStore) Get(handle string) uint32 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.store[handle]

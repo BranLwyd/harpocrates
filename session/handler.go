@@ -180,7 +180,7 @@ func (h *Handler) timeoutSession(sessID string, sess *Session) {
 	}
 }
 
-func (h Handler) alert(code alert.Code, details string) {
+func (h *Handler) alert(code alert.Code, details string) {
 	go func() {
 		ctx, c := context.WithTimeout(context.Background(), alertTimeLimit)
 		defer c()
@@ -204,7 +204,7 @@ type Session struct {
 }
 
 // GetStore returns the password store associated with this session.
-func (s Session) GetStore() *password.Store {
+func (s *Session) GetStore() *password.Store {
 	return s.store
 }
 
@@ -243,7 +243,7 @@ func (s *Session) GenerateU2FChallenge(path string) (*u2f.Challenge, error) {
 // GetU2FChallenge gets the existing U2F challenge for the given path.
 // It returns ErrNoChallenge if there is no existing U2F challenge for the
 // given path.
-func (s Session) GetU2FChallenge(path string) (*u2f.Challenge, error) {
+func (s *Session) GetU2FChallenge(path string) (*u2f.Challenge, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.challengePath != path || s.challenge == nil {
@@ -284,6 +284,6 @@ func (s *Session) AuthenticateU2FResponse(path string, sr u2f.SignResponse) erro
 }
 
 // GetRegistrations gets the set of registrations for U2F devices.
-func (s Session) GetRegistrations() []u2f.Registration {
+func (s *Session) GetRegistrations() []u2f.Registration {
 	return s.h.registrations
 }
