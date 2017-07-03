@@ -9,8 +9,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"path"
-	"strings"
 
 	"../session"
 	"../static"
@@ -22,6 +20,8 @@ type sessionContextKey struct{}
 
 const (
 	sessionCookieName = "harp-sid"
+
+	authAny = "#_ANY_#"
 )
 
 var (
@@ -32,15 +32,30 @@ var (
 // loginHandler handles getting an authenticated session for the user session.
 // If the user is already logged in, it adds the authenticated session to the
 // request context and runs a wrapped handler.
+// TODO: rename to authenticationHandler
 type loginHandler struct {
-	hh http.Handler
-	sh *session.Handler
+	ahh authenticatedHTTPHandler
+	sh  *session.Handler
 }
 
-func newLogin(sh *session.Handler, hh http.Handler) *loginHandler {
+type authenticatedHTTPHandler interface {
+	// http.Handler is responsible for rendering the authenticated page.
+	// A session.Session is guaranteed to be available from the passed
+	// http.Request.
+	http.Handler
+
+	// authPath returns the path that should be U2F-authenticated for this
+	// request. It can also return the empty string if no U2F
+	// authentication is required, or authAny if U2F-authentication of any
+	// page is sufficient to allow access to this page. A session.Session
+	// is guaranteed to be available from the passed http.Request.
+	authPath(*http.Request) (string, error)
+}
+
+func newLogin(sh *session.Handler, ahh authenticatedHTTPHandler) *loginHandler {
 	return &loginHandler{
-		hh: hh,
-		sh: sh,
+		ahh: ahh,
+		sh:  sh,
 	}
 }
 
@@ -66,18 +81,24 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		lh.servePasswordHTTP(w, r)
 		return
 	}
+	r = r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, sess))
 
 	// The user has a session. If this page needs additional U2F
 	// authentication, prompt for it.
-	if lh.needsU2F(sess, r.URL.Path) {
-		lh.serveU2FHTTP(w, r, sess)
+	ap, err := lh.u2fPath(r, sess)
+	if err != nil {
+		log.Printf("Could not determine U2F authentication path: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	if ap != "" {
+		lh.serveU2FHTTP(w, r, sess, ap)
 		return
 	}
 
 	// User is fully authenticated for this page. Add the session to the request
 	// context and run the wrapped handler.
-	r = r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, sess))
-	lh.hh.ServeHTTP(w, r)
+	lh.ahh.ServeHTTP(w, r)
 }
 
 func (lh loginHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) {
@@ -109,35 +130,25 @@ func (lh loginHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (lh loginHandler) needsU2F(sess *session.Session, p string) bool {
-	// Check for trailing slash before cleaning, since path.Clean removes
-	// any trailing slashes.
-	isEntryRequest := !strings.HasSuffix(p, "/")
-	p = path.Clean(p)
-
-	switch {
-	case strings.HasPrefix(p, "/p/") && isEntryRequest:
-		// Entries require per-entry authentication.
-		return !sess.IsU2FAuthenticatedFor(p)
-
-	case p == "/register":
-		// The registration page is available without U2F if there are
-		// no U2F registrations.
-		if len(sess.GetRegistrations()) == 0 {
-			return false
-		}
-		fallthrough
-
-	default:
-		// Other pages require any path to have been authenticated.
-		return !sess.IsU2FAuthenticated()
+func (lh loginHandler) u2fPath(r *http.Request, sess *session.Session) (string, error) {
+	ap, err := lh.ahh.authPath(r)
+	if err != nil {
+		return "", fmt.Errorf("could not get authentication path: %v", err)
 	}
+
+	if ap == authAny && sess.IsU2FAuthenticated() {
+		return "", nil
+	}
+	if ap != "" && sess.IsU2FAuthenticatedFor(ap) {
+		return "", nil
+	}
+	return ap, nil
 }
 
-func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session) {
+func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, authPath string) {
 	switch r.Method {
 	case http.MethodGet:
-		c, err := sess.GenerateU2FChallenge(path.Clean(r.URL.Path))
+		c, err := sess.GenerateU2FChallenge(authPath)
 		if err != nil {
 			log.Printf("Could not create U2F authentication challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -170,7 +181,7 @@ func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		if err := sess.AuthenticateU2FResponse(path.Clean(r.URL.Path), resp); err != nil && err != session.ErrU2FAuthenticationFailed {
+		if err := sess.AuthenticateU2FResponse(authPath, resp); err != nil && err != session.ErrU2FAuthenticationFailed {
 			log.Printf("Could not U2F authenticate: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

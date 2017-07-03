@@ -20,8 +20,17 @@ var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(st
 // It assumes it can get an authenticated session from the request.
 type registerHandler struct{}
 
-func newRegister() http.Handler {
+func newRegister() *registerHandler {
 	return &registerHandler{}
+}
+
+func (rh registerHandler) authPath(r *http.Request) (string, error) {
+	// The registration page is available without U2F if there are
+	// no U2F registrations.
+	if len(sessionFrom(r).GetRegistrations()) == 0 {
+		return "", nil
+	}
+	return authAny, nil
 }
 
 func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

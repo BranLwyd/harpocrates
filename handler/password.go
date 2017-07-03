@@ -45,8 +45,18 @@ var (
 // It assumes it can get an authenticated session from the request.
 type passwordHandler struct{}
 
-func newPassword() http.Handler {
+func newPassword() *passwordHandler {
 	return &passwordHandler{}
+}
+
+func (ph passwordHandler) authPath(r *http.Request) (string, error) {
+	// If this is requesting an entry, require U2F authentication per page.
+	// If this is requesting a directory, only require that some U2F authentication has been done.
+	isEntryRequest := !strings.HasSuffix(r.URL.Path, "/")
+	if isEntryRequest {
+		return path.Clean(r.URL.Path), nil
+	}
+	return authAny, nil
 }
 
 func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
