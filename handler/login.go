@@ -18,11 +18,9 @@ import (
 	"github.com/tstranex/u2f"
 )
 
-type handlerContextKey int
+type sessionContextKey struct{}
 
 const (
-	sessionContextKey handlerContextKey = 0
-
 	sessionCookieName = "harp-sid"
 )
 
@@ -78,7 +76,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// User is fully authenticated for this page. Add the session to the request
 	// context and run the wrapped handler.
-	r = r.WithContext(context.WithValue(r.Context(), sessionContextKey, sess))
+	r = r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, sess))
 	lh.hh.ServeHTTP(w, r)
 }
 
@@ -223,6 +221,6 @@ func sessionIDFromRequest(r *http.Request) (string, error) {
 }
 
 func sessionFrom(r *http.Request) *session.Session {
-	sess, _ := r.Context().Value(sessionContextKey).(*session.Session)
+	sess, _ := r.Context().Value(sessionContextKey{}).(*session.Session)
 	return sess
 }
