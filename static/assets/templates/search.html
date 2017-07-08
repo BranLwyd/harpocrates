@@ -1,0 +1,21 @@
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=0.5" />
+	<title>Search Results - {{.Query}} - Harpocrates</title>
+	<link rel="stylesheet" type="text/css" href="/style.css">
+</head>
+<body>
+	<div class="content">
+		<div class="header">
+			<h1>Search Results for "{{.Query}}"</h1>
+		</div>
+
+		<div class="inner-content">
+			<ul>{{if .Matches}}{{range .Matches}}
+				<li><a href="/p{{.}}">{{.}}</a></li>{{end}}{{else}}
+				No results.{{end}}
+			</ul>
+		</div>
+	</div>
+</body>
+</html>
