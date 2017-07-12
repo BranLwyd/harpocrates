@@ -29,7 +29,7 @@ type limiter struct {
 	dur        time.Duration // how long to wait between allowing events
 	maxWaiters int
 
-	mu      sync.Mutex // protects entries as well as all map values of entries
+	mu      sync.Mutex // protects entries as well as all values of entries
 	entries map[string]*entry
 }
 
@@ -67,16 +67,13 @@ func (l *limiter) Wait(clientID string) error {
 		<-waitCh
 	}
 	time.AfterFunc(l.dur, func() {
-		close(nextWaitCh)
-
 		l.mu.Lock()
 		defer l.mu.Unlock()
-		if waitCh != nil {
-			e.waiters--
-		}
+		close(nextWaitCh)
 		if e.waiters == 0 {
 			delete(l.entries, clientID)
 		}
+		e.waiters--
 	})
 	return nil
 }
