@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"path"
-	"strings"
+
+	"golang.org/x/text/language"
+	"golang.org/x/text/search"
 
 	"../static"
 )
@@ -24,7 +26,7 @@ func newSearch() *searchHandler {
 }
 
 func (searchHandler) authPath(r *http.Request) (string, error) {
-	matches, err := search(r)
+	matches, err := performSearch(r)
 	if err != nil {
 		return "", fmt.Errorf("could not perform search: %v", err)
 	}
@@ -42,7 +44,7 @@ func (searchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/p/", http.StatusSeeOther)
 		return
 	}
-	matches, err := search(r)
+	matches, err := performSearch(r)
 	if err != nil {
 		log.Printf("Could not perform search: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -69,11 +71,12 @@ func (searchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 }
 
-func search(r *http.Request) ([]string, error) {
+func performSearch(r *http.Request) ([]string, error) {
 	query := r.FormValue("q")
 	if query == "" {
 		return nil, nil
 	}
+	pat := search.New(language.English, search.IgnoreCase).Compile([]byte(query))
 
 	sess := sessionFrom(r)
 	allEntries, err := sess.GetStore().List()
@@ -82,7 +85,7 @@ func search(r *http.Request) ([]string, error) {
 	}
 	var matches []string
 	for _, e := range allEntries {
-		if strings.Index(e, query) != -1 {
+		if i, _ := pat.IndexString(e); i != -1 {
 			matches = append(matches, e)
 		}
 	}
