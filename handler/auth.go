@@ -29,11 +29,10 @@ var (
 	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(static.MustAsset("templates/u2f-authenticate.html"))))
 )
 
-// loginHandler handles getting an authenticated session for the user session.
+// authHandler handles getting an authenticated session for the user session.
 // If the user is already logged in, it adds the authenticated session to the
 // request context and runs a wrapped handler.
-// TODO: rename to authenticationHandler
-type loginHandler struct {
+type authHandler struct {
 	ahh authenticatedHTTPHandler
 	sh  *session.Handler
 }
@@ -52,14 +51,14 @@ type authenticatedHTTPHandler interface {
 	authPath(*http.Request) (string, error)
 }
 
-func newLogin(sh *session.Handler, ahh authenticatedHTTPHandler) *loginHandler {
-	return &loginHandler{
+func newAuth(sh *session.Handler, ahh authenticatedHTTPHandler) *authHandler {
+	return &authHandler{
 		ahh: ahh,
 		sh:  sh,
 	}
 }
 
-func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (lh authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Don't allow caching of anything that requires authentication.
 	w.Header().Set("Cache-Control", "no-store")
 
@@ -101,7 +100,7 @@ func (lh loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	lh.ahh.ServeHTTP(w, r)
 }
 
-func (lh loginHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) {
+func (lh authHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		loginPasswordHandler.ServeHTTP(w, r)
@@ -130,7 +129,7 @@ func (lh loginHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (lh loginHandler) u2fPath(r *http.Request, sess *session.Session) (string, error) {
+func (lh authHandler) u2fPath(r *http.Request, sess *session.Session) (string, error) {
 	ap, err := lh.ahh.authPath(r)
 	if err != nil {
 		return "", fmt.Errorf("could not get authentication path: %v", err)
@@ -145,7 +144,7 @@ func (lh loginHandler) u2fPath(r *http.Request, sess *session.Session) (string, 
 	return ap, nil
 }
 
-func (lh loginHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, authPath string) {
+func (lh authHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, authPath string) {
 	switch r.Method {
 	case http.MethodGet:
 		c, err := sess.GenerateU2FChallenge(authPath)
