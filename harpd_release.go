@@ -1,5 +1,3 @@
-// +build !debug
-
 package main
 
 import (
@@ -13,15 +11,15 @@ import (
 
 	"golang.org/x/crypto/acme/autocert"
 
-	"../handler"
-	"../session"
+	"github.com/BranLwyd/harpocrates/counter"
+	"github.com/BranLwyd/harpocrates/handler/handler"
 )
 
 var (
 	configFile = flag.String("config", "", "The harpd configuration file to use.")
 )
 
-func parseConfig() (_ *config, serializedEntity string, _ *session.CounterStore) {
+func parseConfig() (_ *config, serializedEntity string, _ *counter.Store) {
 	// Sanity check flags.
 	if *configFile == "" {
 		log.Fatalf("--config is required")
@@ -76,7 +74,7 @@ func parseConfig() (_ *config, serializedEntity string, _ *session.CounterStore)
 	}
 	se := string(seBytes)
 
-	cs, err := session.NewCounterStore(cfg.CounterFile)
+	cs, err := counter.NewStore(cfg.CounterFile)
 	if err != nil {
 		log.Fatalf("Could not create U2F counter store: %v", err)
 	}

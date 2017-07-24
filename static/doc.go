@@ -1,6 +1,0 @@
-// Package static contains static assets.
-package static
-
-//go:generate go-bindata -nomemcopy -nocompress -pkg=static -tags !debug -o bindata_rel.go -ignore=assets/debug/ -prefix=assets/ assets/...
-
-//go:generate go-bindata -nomemcopy -nocompress -pkg=static -tags debug -o bindata_debug.go -prefix=assets/ assets/...

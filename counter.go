@@ -1,4 +1,5 @@
-package session
+// Package counter provides functionality for supporting tracking of U2F counters.
+package counter
 
 import (
 	"encoding/json"
@@ -11,16 +12,17 @@ import (
 	"sync"
 )
 
-// Stores a uint32 counter keyed by an opaque string, and serializes changes
-// disk. Used for storing & retrieving U2F counters. It is safe for concurrent
-// use from multiple goroutines.
-type CounterStore struct {
+// Store stores a uint32 counter keyed by an opaque string, and serializes
+// changes to disk. Used for storing & retrieving U2F counters. It is safe for
+// concurrent use from multiple goroutines.
+type Store struct {
 	mu      sync.RWMutex // protects store, file named by ctrFile
 	store   map[string]uint32
 	ctrFile string
 }
 
-func NewCounterStore(counterFile string) (*CounterStore, error) {
+// NewStore returns a new Store, using the given file to save & load state.
+func NewStore(counterFile string) (*Store, error) {
 	f, err := os.Open(counterFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not open U2F counter file: %v", err)
@@ -48,23 +50,23 @@ func NewCounterStore(counterFile string) (*CounterStore, error) {
 		store[k] = uint32(numV)
 	}
 
-	return &CounterStore{
+	return &Store{
 		store:   store,
 		ctrFile: counterFile,
 	}, nil
 }
 
-// NewMemoryCounterStore creates a new counter store that has no backing file.
+// NewMemoryStore creates a new counter store that has no backing file.
 // It should be used only for testing.
-func NewMemoryCounterStore() *CounterStore {
-	return &CounterStore{
+func NewMemoryStore() *Store {
+	return &Store{
 		store: make(map[string]uint32),
 	}
 }
 
 // Get gets the value associated with the given handle. It returns 0 if no such
 // handle exists.
-func (c *CounterStore) Get(handle string) uint32 {
+func (c *Store) Get(handle string) uint32 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.store[handle]
@@ -72,7 +74,7 @@ func (c *CounterStore) Get(handle string) uint32 {
 
 // Set sets the value associated with the given handle. If it returns a non-nil
 // error, the store is left unmodified.
-func (c *CounterStore) Set(handle string, val uint32) (retErr error) {
+func (c *Store) Set(handle string, val uint32) (retErr error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

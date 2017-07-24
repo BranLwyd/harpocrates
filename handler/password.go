@@ -8,8 +8,8 @@ import (
 	"path"
 	"strings"
 
-	"../session"
-	"../static"
+	"github.com/BranLwyd/harpocrates/assets"
+	"github.com/BranLwyd/harpocrates/session"
 )
 
 var (
@@ -22,7 +22,7 @@ var (
 			}
 			return d + "/"
 		},
-	}).Parse(string(static.MustAsset("templates/entry-view.html"))))
+	}).Parse(string(assets.MustAsset("templates/entry-view.html"))))
 
 	dirViewTmpl = template.Must(template.New("directory-view").Funcs(map[string]interface{}{
 		"name": func(dirPath string) string { return path.Base(dirPath) },
@@ -38,7 +38,7 @@ var (
 			}
 			return pd + "/"
 		},
-	}).Parse(string(static.MustAsset("templates/directory-view.html"))))
+	}).Parse(string(assets.MustAsset("templates/directory-view.html"))))
 )
 
 // passwordHandler handles all password content (i.e. the main UI).

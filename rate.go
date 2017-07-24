@@ -1,3 +1,4 @@
+// Package rate provides functionality for working with rate limits.
 package rate
 
 import (

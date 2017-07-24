@@ -17,9 +17,10 @@ import (
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 
-	"../alert"
-	"../password"
-	"../rate"
+	"github.com/BranLwyd/harpocrates/alert"
+	"github.com/BranLwyd/harpocrates/counter"
+	"github.com/BranLwyd/harpocrates/password"
+	"github.com/BranLwyd/harpocrates/rate"
 )
 
 const (
@@ -40,7 +41,7 @@ type Handler struct {
 	mu       sync.RWMutex        // protects sessions
 	sessions map[string]*Session // by session ID
 
-	counters         *CounterStore      // Store of U2F counters by key handle.
+	counters         *counter.Store     // Store of U2F counters by key handle.
 	sessionDuration  time.Duration      // how long sessions last
 	serializedEntity string             // entity used to encrypt/decrypt password entries
 	baseDir          string             // base directory containing password entries
@@ -51,7 +52,7 @@ type Handler struct {
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *CounterStore, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
+func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *counter.Store, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
