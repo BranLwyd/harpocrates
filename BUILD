@@ -28,8 +28,8 @@ go_binary(
     ],
     deps = [
         "//:alert",
-        "//:debug_assets",
         "//:counter",
+        "//:debug_assets",
         "//:session",
         "//handler",
     ],
@@ -114,7 +114,8 @@ genrule(
     name = "assets_go",
     srcs = [":assets_files"],
     outs = ["assets.go"],
-    cmd = "go-bindata -o $@ --nomemcopy --nocompress --pkg=assets --prefix=assets/ $(locations :assets_files)",
+    cmd = "$(location @com_github_jteeuwen_go-bindata//go-bindata) -o $@ --nomemcopy --nocompress --pkg=assets --prefix=assets/ $(locations :assets_files)",
+    tools = ["@com_github_jteeuwen_go-bindata//go-bindata"],
 )
 
 go_library(
@@ -132,7 +133,8 @@ genrule(
     name = "debug_assets_go",
     srcs = [":debug_assets_files"],
     outs = ["debug_assets.go"],
-    cmd = "go-bindata -o $@ --nomemcopy --nocompress --pkg=debug_assets --prefix=assets/ $(locations :debug_assets_files)",
+    cmd = "$(location @com_github_jteeuwen_go-bindata//go-bindata) -o $@ --nomemcopy --nocompress --pkg=debug_assets --prefix=assets/ $(locations :debug_assets_files)",
+    tools = ["@com_github_jteeuwen_go-bindata//go-bindata"],
 )
 
 go_library(
