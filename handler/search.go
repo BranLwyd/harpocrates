@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strings"
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/search"
@@ -85,6 +86,11 @@ func performSearch(r *http.Request) ([]string, error) {
 	}
 	var matches []string
 	for _, e := range allEntries {
+		// Ignore hidden entries.
+		if strings.Index(e, "/.") != -1 {
+			continue
+		}
+
 		if i, _ := pat.IndexString(e); i != -1 {
 			matches = append(matches, e)
 		}

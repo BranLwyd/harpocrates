@@ -69,7 +69,7 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check for trailing slash before cleaning, since path.Clean removes
 	// any trailing slashes.
-	// TODO: unify path handling between this code & login.go's needU2F
+	// TODO: unify path handling between this code & authPath above
 	isEntryRequest := !strings.HasSuffix(r.URL.Path, "/")
 	entryPath := path.Clean(r.URL.Path)
 	if !isEntryRequest {
@@ -125,9 +125,16 @@ func (ph passwordHandler) serveDirectoryHTTP(w http.ResponseWriter, r *http.Requ
 	var entries []string
 	var subdirs []string
 	for _, pe := range pathEntries {
+		// Ignore if not in the current directory.
 		if !strings.HasPrefix(pe, dirPath) {
 			continue
 		}
+
+		// Ignore if a hidden file or directory.
+		if pe[len(dirPath)] == '.' {
+			continue
+		}
+
 		idx := strings.Index(pe[len(dirPath):], "/")
 		if idx == -1 {
 			entries = append(entries, pe)
