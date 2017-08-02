@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BranLwyd/harpocrates/assets"
+	"../static"
 )
 
 func must(h http.Handler, err error) http.Handler {
@@ -34,7 +34,7 @@ func newStatic(content []byte, contentType string) *staticHandler {
 }
 
 func newAsset(name, contentType string) (*staticHandler, error) {
-	asset, err := assets.Asset(name)
+	asset, err := static.Asset(name)
 	if err != nil {
 		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
 	}
@@ -42,11 +42,11 @@ func newAsset(name, contentType string) (*staticHandler, error) {
 }
 
 func newCacheableAsset(name, contentType string) (*staticHandler, error) {
-	asset, err := assets.Asset(name)
+	asset, err := static.Asset(name)
 	if err != nil {
 		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
 	}
-	fi, err := assets.AssetInfo(name)
+	fi, err := static.AssetInfo(name)
 	if err != nil {
 		return nil, fmt.Errorf("could not get asset %q info: %v", name, err)
 	}

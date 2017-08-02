@@ -11,11 +11,11 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/search"
 
-	"github.com/BranLwyd/harpocrates/assets"
+	"../static"
 )
 
 var (
-	searchTmpl = template.Must(template.New("search").Funcs(map[string]interface{}{}).Parse(string(assets.MustAsset("templates/search.html"))))
+	searchTmpl = template.Must(template.New("search").Funcs(map[string]interface{}{}).Parse(string(static.MustAsset("templates/search.html"))))
 )
 
 // searchHandler handles searching & the search UI.
