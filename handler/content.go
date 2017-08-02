@@ -10,6 +10,7 @@ import (
 var (
 	contentStyleHandler           = must(newCacheableAsset("etc/style.css", "text/css; charset=utf-8"))
 	contentRobotsHandler          = must(newCacheableAsset("etc/robots.txt", "text/plain; charset=utf-8"))
+	contentFaviconHandler         = must(newCacheableAsset("etc/favicon.ico", "image/x-icon"))
 	contentU2FAPIHandler          = must(newCacheableAsset("etc/u2f-api.js", "application/javascript"))
 	contentU2FAuthenticateHandler = must(newCacheableAsset("etc/u2f-authenticate.js", "application/javascript"))
 	contentU2FRegisterHandler     = must(newCacheableAsset("etc/u2f-register.js", "application/javascript"))
@@ -22,6 +23,7 @@ func NewContent(sh *session.Handler) http.Handler {
 	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusSeeOther)))
 	mux.Handle("/style.css", contentStyleHandler)
 	mux.Handle("/robots.txt", contentRobotsHandler)
+	mux.Handle("/favicon.ico", contentFaviconHandler)
 	mux.Handle("/u2f-api.js", contentU2FAPIHandler)
 	mux.Handle("/u2f-authenticate.js", contentU2FAuthenticateHandler)
 	mux.Handle("/u2f-register.js", contentU2FRegisterHandler)
