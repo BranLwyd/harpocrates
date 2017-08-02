@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 
+	"../password"
 	"../session"
 	"../static"
 )
@@ -91,9 +92,12 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (ph passwordHandler) serveEntryHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
 	// Get entry content.
-	// TODO: return 404 for file-not-found instead of 500
 	content, err := sess.GetStore().Get(entryPath)
 	if err != nil {
+		if err == password.ErrNoEntry {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
 		log.Printf("Could not get entry %q in password handler: %v", entryPath, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
