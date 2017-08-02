@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 
+	"../rate"
 	"../session"
 	"../static"
 
@@ -114,6 +115,10 @@ func (lh authHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) 
 		sid, _, err := lh.sh.CreateSession(clientIP(r), r.FormValue("pass"))
 		if err == session.ErrWrongPassphrase {
 			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
+			return
+		}
+		if err == rate.ErrTooManyEvents {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 			return
 		}
 		if err != nil {

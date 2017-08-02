@@ -88,6 +88,9 @@ func NewHandler(serializedEntity, baseDir, host string, registrations []string, 
 func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, error) {
 	// Respect rate limit.
 	if err := h.rateLimiter.Wait(clientID); err != nil {
+		if err == rate.ErrTooManyEvents {
+			return "", nil, err
+		}
 		return "", nil, fmt.Errorf("couldn't wait for rate limiter: %v", err)
 	}
 

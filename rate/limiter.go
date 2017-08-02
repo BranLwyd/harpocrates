@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var ErrTooManyEvents = errors.New("too many concurrent events")
+
 // Limiter provides a per-client rate limiter, where clients are identified
 // by a unique ID.
 type Limiter interface {
@@ -53,7 +55,7 @@ func (l *limiter) Wait(clientID string) error {
 	if waitCh != nil {
 		if e.waiters == l.maxWaiters {
 			l.mu.Unlock()
-			return errors.New("too many concurrent events")
+			return ErrTooManyEvents
 		}
 		e.waiters++
 	}
