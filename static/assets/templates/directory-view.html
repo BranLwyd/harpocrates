@@ -11,9 +11,11 @@
 		</div>
 
 		<div class="inner-content">
-			<ul>{{if parentDir .Path}}
+			<ul class="dir-list">{{if parentDir .Path}}
 				<li><a href="/p{{parentDir .Path}}">../</a></li>{{end}}{{range .Subdirectories}}
-				<li><a href="/p{{.}}/">{{name .}}/</a></li>{{end}}{{range .Entries}}
+				<li><a href="/p{{.}}/">{{name .}}/</a></li>{{end}}
+			</ul>
+			<ul class="entry-list">{{range .Entries}}
 				<li><a href="/p{{.}}">{{name .}}</a></li>{{end}}
 			</ul>
 		</div>

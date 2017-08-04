@@ -10,11 +10,11 @@
 			<h1>Search Results for "{{.Query}}"</h1>
 		</div>
 
-		<div class="inner-content">
-			<ul>{{if .Matches}}{{range .Matches}}
-				<li><a href="/p{{.}}">{{.}}</a></li>{{end}}{{else}}
-				No results.{{end}}
-			</ul>
+		<div class="inner-content">{{if .Matches}}
+			<ul class="entry-list">{{range .Matches}}
+				<li><a href="/p{{.}}">{{.}}</a></li>{{end}}
+			</ul>{{else}}
+			No results.{{end}}
 		</div>
 	</div>
 </body>

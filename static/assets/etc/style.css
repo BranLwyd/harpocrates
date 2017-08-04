@@ -43,3 +43,31 @@ h2.message {
   margin: 5em 0;
   width: 100%;
 }
+
+ul.dir-list {
+  list-style: none;
+  margin-left: 0;
+  padding-left: 1.2em;
+  text-index: -1.2em;
+}
+
+ul.dir-list li:before {
+  content: "\1f4c1";
+  display: block;
+  float: left;
+  width: 1.2em;
+}
+
+ul.entry-list {
+  list-style: none;
+  margin-left: 0;
+  padding-left: 1.2em;
+  text-index: -1.2em;
+}
+
+ul.entry-list li:before {
+  content: "\1f4c4";
+  display: block;
+  float: left;
+  width: 1.2em;
+}
