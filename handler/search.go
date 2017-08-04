@@ -54,7 +54,7 @@ func (searchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// If there's only one result, redirect the user to it.
 	if len(matches) == 1 {
-		http.Redirect(w, r, path.Join("/p", matches[0]), http.StatusSeeOther)
+		http.Redirect(w, r, path.Join("/p/", matches[0]), http.StatusSeeOther)
 		return
 	}
 
@@ -92,7 +92,7 @@ func performSearch(r *http.Request) ([]string, error) {
 		}
 
 		if i, _ := pat.IndexString(e); i != -1 {
-			matches = append(matches, e)
+			matches = append(matches, strings.TrimPrefix(e, "/"))
 		}
 	}
 	return matches, nil
