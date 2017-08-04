@@ -15,6 +15,7 @@ var (
 	contentU2FAuthenticateHandler = must(newCacheableAsset("etc/u2f-authenticate.js", "application/javascript"))
 	contentU2FRegisterHandler     = must(newCacheableAsset("etc/u2f-register.js", "application/javascript"))
 	contentEntryViewHandler       = must(newCacheableAsset("etc/entry-view.js", "application/javascript"))
+	contentFontAwesomeHandler     = must(newCacheableAsset("etc/font-awesome.otf", "application/font-sfnt"))
 )
 
 func NewContent(sh *session.Handler) http.Handler {
@@ -29,6 +30,7 @@ func NewContent(sh *session.Handler) http.Handler {
 	mux.Handle("/u2f-authenticate.js", contentU2FAuthenticateHandler)
 	mux.Handle("/u2f-register.js", contentU2FRegisterHandler)
 	mux.Handle("/entry-view.js", contentEntryViewHandler)
+	mux.Handle("/font-awesome.otf", contentFontAwesomeHandler)
 
 	// Dynamic content handlers.
 	mux.Handle("/register", newAuth(sh, newRegister()))
