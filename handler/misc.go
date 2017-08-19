@@ -103,7 +103,7 @@ func (fh filteredHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// loggingHandler is a wrapping handler that logs the IP of the requestor and the path of the request.
+// loggingHandler is a wrapping handler that logs the IP of the requestor and the path of the request, as well as timing information.
 type loggingHandler struct {
 	h       http.Handler
 	logName string
@@ -117,8 +117,9 @@ func NewLogging(logName string, h http.Handler) http.Handler {
 }
 
 func (lh loggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[%s] %s requested %s", lh.logName, clientIP(r), r.URL.RequestURI())
+	start := time.Now()
 	lh.h.ServeHTTP(w, r)
+	log.Printf("[%s] %s requested %s [took %v]", lh.logName, clientIP(r), r.URL.RequestURI(), time.Since(start))
 }
 
 func clientIP(r *http.Request) string {
