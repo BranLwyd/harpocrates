@@ -55,6 +55,6 @@ func serve(_ *config, h http.Handler) {
 		Addr:    "127.0.0.1:8080",
 		Handler: handler.NewLogging("debug", handler.NewSecureHeader(h)),
 	}
-	log.Printf("Serving debug")
+	log.Printf("Serving debug on https://localhost:8080")
 	log.Fatalf("Error while serving: %v", server.ListenAndServeTLS("", ""))
 }
