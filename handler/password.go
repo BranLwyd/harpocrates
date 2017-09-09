@@ -15,7 +15,7 @@ import (
 
 var (
 	entryViewTmpl = template.Must(template.New("entry-view").Funcs(map[string]interface{}{
-		"name": func(entryPath string) string { return path.Base(entryPath) },
+		"name": path.Base,
 		"dir": func(entryPath string) string {
 			d := path.Dir(entryPath)
 			if d == "/" {
@@ -26,7 +26,7 @@ var (
 	}).Parse(string(static.MustAsset("templates/entry-view.html"))))
 
 	dirViewTmpl = template.Must(template.New("directory-view").Funcs(map[string]interface{}{
-		"name": func(dirPath string) string { return path.Base(dirPath) },
+		"name": path.Base,
 		"parentDir": func(dirPath string) string {
 			if dirPath == "/" {
 				return ""
@@ -73,15 +73,9 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: unify path handling between this code & authPath above
 	isEntryRequest := !strings.HasSuffix(r.URL.Path, "/")
 	entryPath := path.Clean(r.URL.Path)
-	if !isEntryRequest {
+	if !isEntryRequest && !strings.HasSuffix(entryPath, "/") {
 		entryPath = entryPath + "/"
 	}
-	if !strings.HasPrefix(entryPath, "/p") {
-		log.Printf("Password handler got unexpected path %q", entryPath)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	entryPath = strings.TrimPrefix(entryPath, "/p")
 
 	if isEntryRequest {
 		ph.serveEntryHTTP(w, r, sess, entryPath)

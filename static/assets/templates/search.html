@@ -12,7 +12,7 @@
 
 		<div class="inner-content">{{if .Matches}}
 			<ul class="entry-list">{{range .Matches}}
-				<li><a href="/p/{{.}}">{{.}}</a></li>{{end}}
+				<li><a href="{{.}}">{{relative .}}</a></li>{{end}}
 			</ul>{{else}}
 			No results.{{end}}
 		</div>

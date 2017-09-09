@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"path"
 	"strings"
 
 	"golang.org/x/text/language"
@@ -16,7 +15,9 @@ import (
 )
 
 var (
-	searchTmpl = template.Must(template.New("search").Funcs(map[string]interface{}{}).Parse(string(static.MustAsset("templates/search.html"))))
+	searchTmpl = template.Must(template.New("search").Funcs(map[string]interface{}{
+		"relative": func(entryPath string) string { return strings.TrimPrefix(entryPath, "/") },
+	}).Parse(string(static.MustAsset("templates/search.html"))))
 )
 
 // searchHandler handles searching & the search UI.
@@ -34,7 +35,7 @@ func (searchHandler) authPath(r *http.Request) (string, error) {
 	if len(matches) == 1 {
 		// Authenticate against the page we'll be forwarding to,
 		// since we're about to forward to it.
-		return path.Join("/p", matches[0]), nil
+		return matches[0], nil
 	}
 	return authAny, nil
 }
@@ -42,7 +43,7 @@ func (searchHandler) authPath(r *http.Request) (string, error) {
 func (searchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	query := r.FormValue("q")
 	if query == "" {
-		http.Redirect(w, r, "/p/", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	matches, err := performSearch(r)
@@ -54,7 +55,7 @@ func (searchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// If there's only one result, redirect the user to it.
 	if len(matches) == 1 {
-		http.Redirect(w, r, path.Join("/p/", matches[0]), http.StatusSeeOther)
+		http.Redirect(w, r, matches[0], http.StatusSeeOther)
 		return
 	}
 
@@ -92,7 +93,7 @@ func performSearch(r *http.Request) ([]string, error) {
 		}
 
 		if i, _ := pat.IndexString(e); i != -1 {
-			matches = append(matches, strings.TrimPrefix(e, "/"))
+			matches = append(matches, e)
 		}
 	}
 	return matches, nil

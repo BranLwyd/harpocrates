@@ -22,7 +22,6 @@ func NewContent(sh *session.Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// Static content handlers.
-	mux.Handle("/", newFiltered("/", http.RedirectHandler("/p/", http.StatusSeeOther)))
 	mux.Handle("/style.css", contentStyleHandler)
 	mux.Handle("/robots.txt", contentRobotsHandler)
 	mux.Handle("/favicon.ico", contentFaviconHandler)
@@ -35,7 +34,7 @@ func NewContent(sh *session.Handler) http.Handler {
 	// Dynamic content handlers.
 	mux.Handle("/register", newAuth(sh, newRegister()))
 	mux.Handle("/s", newAuth(sh, newSearch()))
-	mux.Handle("/p/", newAuth(sh, newPassword()))
+	mux.Handle("/", newAuth(sh, newPassword()))
 
 	return mux
 }
