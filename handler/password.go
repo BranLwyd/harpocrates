@@ -53,11 +53,11 @@ func newPassword() *passwordHandler {
 func (ph passwordHandler) authPath(r *http.Request) (string, error) {
 	// If this is requesting an entry, require U2F authentication per page.
 	// If this is requesting a directory, only require that some U2F authentication has been done.
-	isEntryRequest := !strings.HasSuffix(r.URL.Path, "/")
-	if isEntryRequest {
-		return path.Clean(r.URL.Path), nil
+	path, isDir := parsePath(r.URL.Path)
+	if isDir {
+		return authAny, nil
 	}
-	return authAny, nil
+	return path, nil
 }
 
 func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -68,19 +68,11 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for trailing slash before cleaning, since path.Clean removes
-	// any trailing slashes.
-	// TODO: unify path handling between this code & authPath above
-	isEntryRequest := !strings.HasSuffix(r.URL.Path, "/")
-	entryPath := path.Clean(r.URL.Path)
-	if !isEntryRequest && !strings.HasSuffix(entryPath, "/") {
-		entryPath = entryPath + "/"
-	}
-
-	if isEntryRequest {
-		ph.serveEntryHTTP(w, r, sess, entryPath)
+	path, isDir := parsePath(r.URL.Path)
+	if isDir {
+		ph.serveDirectoryHTTP(w, r, sess, path)
 	} else {
-		ph.serveDirectoryHTTP(w, r, sess, entryPath)
+		ph.serveEntryHTTP(w, r, sess, path)
 	}
 }
 
@@ -163,4 +155,17 @@ func (ph passwordHandler) serveDirectoryHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+}
+
+func parsePath(p string) (cleanedPath string, isDir bool) {
+	isDir = strings.HasSuffix(p, "/")
+	cleanedPath = path.Clean(p)
+
+	// path.Clean() removes any trailing slashes, unless the path is just a slash.
+	// Put the trailing slash back if the request was for a directory.
+	if isDir && !strings.HasSuffix(cleanedPath, "/") {
+		cleanedPath = cleanedPath + "/"
+	}
+
+	return cleanedPath, isDir
 }
