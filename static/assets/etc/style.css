@@ -34,9 +34,19 @@ p {
 }
 
 .header {
+  position: relative;
   padding: 2em;
   background: #ddd;
   border-bottom: 1px solid black;
+}
+
+.controls {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  margin-bottom: 0.2em;
+  margin-right: 0.2em;
+  font-size: x-small;
 }
 
 .content h1 {
