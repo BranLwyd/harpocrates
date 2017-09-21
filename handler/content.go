@@ -32,6 +32,7 @@ func NewContent(sh *session.Handler) http.Handler {
 	mux.Handle("/font-awesome.otf", contentFontAwesomeHandler)
 
 	// Dynamic content handlers.
+	mux.Handle("/logout", newAuth(sh, newLogout()))
 	mux.Handle("/register", newAuth(sh, newRegister()))
 	mux.Handle("/s", newAuth(sh, newSearch()))
 	mux.Handle("/", newAuth(sh, newPassword()))

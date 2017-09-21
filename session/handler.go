@@ -133,6 +133,7 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	// Start reaper timer and return.
 	sess := &Session{
 		h:           h,
+		id:          sessID,
 		store:       store,
 		authedPaths: map[string]struct{}{},
 	}
@@ -165,9 +166,7 @@ func (h *Handler) GetSession(sessionID string) (*Session, error) {
 	return nil, ErrNoSession
 }
 
-// CloseSession closes an existing session, freeing all resources used by the
-// session.
-func (h *Handler) CloseSession(sessID string) {
+func (h *Handler) closeSession(sessID string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if sess := h.sessions[sessID]; sess != nil {
@@ -177,7 +176,7 @@ func (h *Handler) CloseSession(sessID string) {
 }
 
 func (h *Handler) timeoutSession(sessID string, sess *Session) {
-	h.CloseSession(sessID)
+	h.closeSession(sessID)
 	if !sess.IsU2FAuthenticated() {
 		h.alert(alert.TIMEOUT_UNAUTHENTICATED, "Session timed out without completing U2F authentication.")
 	}
@@ -196,6 +195,7 @@ func (h *Handler) alert(code alert.Code, details string) {
 // Session stores all data associated with a given active user session.
 // It is safe for concurrent use from multiple goroutines.
 type Session struct {
+	id              string
 	h               *Handler
 	store           *password.Store
 	expirationTimer *time.Timer
@@ -204,6 +204,12 @@ type Session struct {
 	authedPaths   map[string]struct{}
 	challenge     *u2f.Challenge
 	challengePath string
+}
+
+// Close closes this existing session, freeing all resources used by the
+// session.
+func (s *Session) Close() {
+	s.h.closeSession(s.id)
 }
 
 // GetStore returns the password store associated with this session.
