@@ -13,6 +13,10 @@ body {
   font-family: sans-serif;
 }
 
+a {
+  text-decoration: none;
+}
+
 .content {
   padding: 0;
   font-size: 14px;
@@ -29,15 +33,16 @@ p {
   margin: 0 0 16px;
 }
 
-.inner-content {
-  padding: 2em 4em;
-}
-
 .header {
   position: relative;
   padding: 2em;
   background: #ddd;
   border-bottom: 1px solid black;
+}
+
+.inner-content {
+  position: relative;
+  padding: 2em 4em;
 }
 
 .controls {
@@ -47,10 +52,6 @@ p {
   margin-bottom: 0.2em;
   margin-right: 0.2em;
   font-size: small;
-}
-
-.controls a {
-  text-decoration: none;
 }
 
 .content h1 {
@@ -90,22 +91,10 @@ ul.dir-list li:before {
   width: 1.3em;
 }
 
-ul.dir-list a {
-  text-decoration: none;
-}
-
 ul.entry-list li:before {
   font-family: "Font Awesome";
   content: "\f0f6";
   display: block;
   float: left;
   width: 1.3em;
-}
-
-ul.entry-list a {
-  text-decoration: none;
-}
-
-.fa {
-  font-family: "Font Awesome";
 }
