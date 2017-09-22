@@ -46,7 +46,11 @@ p {
   right: 0;
   margin-bottom: 0.2em;
   margin-right: 0.2em;
-  font-size: x-small;
+  font-size: small;
+}
+
+.controls a {
+  text-decoration: none;
 }
 
 .content h1 {
@@ -86,10 +90,22 @@ ul.dir-list li:before {
   width: 1.3em;
 }
 
+ul.dir-list a {
+  text-decoration: none;
+}
+
 ul.entry-list li:before {
   font-family: "Font Awesome";
   content: "\f0f6";
   display: block;
   float: left;
   width: 1.3em;
+}
+
+ul.entry-list a {
+  text-decoration: none;
+}
+
+.fa {
+  font-family: "Font Awesome";
 }
