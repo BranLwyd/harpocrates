@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"../alert"
-	"../handler"
-	"../session"
+	"github.com/BranLwyd/harpocrates/alert"
+	"github.com/BranLwyd/harpocrates/handler"
+	"github.com/BranLwyd/harpocrates/session"
 )
 
 // config stores a harpd server configuration.

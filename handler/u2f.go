@@ -8,13 +8,13 @@ import (
 	"log"
 	"net/http"
 
-	"../session"
-	"../static"
-
 	"github.com/tstranex/u2f"
+
+	"github.com/BranLwyd/harpocrates/assets"
+	"github.com/BranLwyd/harpocrates/session"
 )
 
-var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(static.MustAsset("templates/u2f-register.html"))))
+var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(assets.MustAsset("templates/u2f-register.html"))))
 
 // registerHandler handles registering a new U2F token.
 // It assumes it can get an authenticated session from the request.

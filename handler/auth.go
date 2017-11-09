@@ -10,11 +10,11 @@ import (
 	"log"
 	"net/http"
 
-	"../rate"
-	"../session"
-	"../static"
-
 	"github.com/tstranex/u2f"
+
+	"github.com/BranLwyd/harpocrates/assets"
+	"github.com/BranLwyd/harpocrates/rate"
+	"github.com/BranLwyd/harpocrates/session"
 )
 
 type sessionContextKey struct{}
@@ -27,7 +27,7 @@ const (
 
 var (
 	loginPasswordHandler = must(newAsset("pages/login-password.html", "text/html; charset=utf-8"))
-	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(static.MustAsset("templates/u2f-authenticate.html"))))
+	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(assets.MustAsset("templates/u2f-authenticate.html"))))
 )
 
 // authHandler handles getting an authenticated session for the user session.

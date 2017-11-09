@@ -1,3 +1,5 @@
+// Package alert provides functionality allowing for out-of-band alerts to be
+// sent when certain events occur.
 package alert
 
 import (
