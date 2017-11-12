@@ -7,14 +7,10 @@ go_prefix("github.com/BranLwyd/harpocrates")
 ##
 go_binary(
     name = "harpd",
-    srcs = [
-        "harpd.go",
-        "harpd_release.go",
-    ],
+    srcs = ["harpd.go"],
     deps = [
-        "//:alert",
         "//:counter",
-        "//:session",
+        "//:server",
         "//handler",
         "@org_golang_x_crypto//acme/autocert:go_default_library",
     ],
@@ -22,15 +18,11 @@ go_binary(
 
 go_binary(
     name = "harpd_debug",
-    srcs = [
-        "harpd.go",
-        "harpd_debug.go",
-    ],
+    srcs = ["harpd_debug.go"],
     deps = [
-        "//:alert",
         "//:counter",
         "//:debug_assets",
-        "//:session",
+        "//:server",
         "//handler",
     ],
 )
@@ -40,23 +32,17 @@ go_binary(
 ##
 go_library(
     name = "alert",
-    srcs = [
-        "alert.go",
-    ],
+    srcs = ["alert.go"],
 )
 
 go_library(
     name = "counter",
-    srcs = [
-        "counter.go",
-    ],
+    srcs = ["counter.go"],
 )
 
 go_library(
     name = "password",
-    srcs = [
-        "password.go",
-    ],
+    srcs = ["password.go"],
     visibility = ["//handler:__pkg__"],
     deps = [
         "@org_golang_x_crypto//openpgp:go_default_library",
@@ -67,9 +53,7 @@ go_library(
 go_test(
     name = "password_test",
     timeout = "short",
-    srcs = [
-        "password_test.go",
-    ],
+    srcs = ["password_test.go"],
     library = ":password",
     deps = [
         "@org_golang_x_crypto//openpgp:go_default_library",
@@ -78,17 +62,24 @@ go_test(
 
 go_library(
     name = "rate",
-    srcs = [
-        "rate.go",
-    ],
+    srcs = ["rate.go"],
     visibility = ["//handler:__pkg__"],
 )
 
 go_library(
-    name = "session",
-    srcs = [
-        "session.go",
+    name = "server",
+    srcs = ["server.go"],
+    deps = [
+        "//:alert",
+        "//:counter",
+        "//:session",
+        "//handler",
     ],
+)
+
+go_library(
+    name = "session",
+    srcs = ["session.go"],
     visibility = ["//handler:__pkg__"],
     deps = [
         "//:alert",
