@@ -2,11 +2,14 @@ package handler
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"path"
 	"strings"
+
+	"mvdan.cc/xurls"
 
 	"github.com/BranLwyd/harpocrates/assets"
 	"github.com/BranLwyd/harpocrates/password"
@@ -14,6 +17,8 @@ import (
 )
 
 var (
+	urlRe = xurls.Strict()
+
 	entryViewTmpl = template.Must(template.New("entry-view").Funcs(map[string]interface{}{
 		"name": path.Base,
 		"dir": func(entryPath string) string {
@@ -22,6 +27,31 @@ var (
 				return d
 			}
 			return d + "/"
+		},
+		"linkify": func(content string) (template.HTML, error) {
+			var buf bytes.Buffer
+			idx := 0
+			for _, m := range urlRe.FindAllStringIndex(content, -1) {
+				lo, hi := m[0], m[1]
+				url := content[lo:hi]
+				if strings.Contains(url, `"`) {
+					// This URL would break out of the href attribute. Don't linkify.
+					if _, err := buf.WriteString(template.HTMLEscapeString(content[:hi])); err != nil {
+						return "", err
+					}
+					idx = hi
+					continue
+				}
+
+				if _, err := fmt.Fprintf(&buf, `%s<a href="%s" target="_blank">%s</a>`, template.HTMLEscapeString(content[idx:lo]), url, template.HTMLEscapeString(url)); err != nil {
+					return "", err
+				}
+				idx = hi
+			}
+			if _, err := buf.WriteString(template.HTMLEscapeString(content[idx:])); err != nil {
+				return "", err
+			}
+			return template.HTML(buf.String()), nil
 		},
 	}).Parse(string(assets.MustAsset("templates/entry-view.html"))))
 

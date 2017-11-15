@@ -11,6 +11,12 @@ go_rules_dependencies()
 go_register_toolchains()
 
 go_repository(
+    name = "cc_mvdan_xurls",
+    commit = "284d56d6f9b9a86a9d5dcf57ec1340731a356d1b",
+    importpath = "mvdan.cc/xurls",
+)
+
+go_repository(
     name = "org_golang_x_crypto",
     commit = "6914964337150723782436d56b3f21610a74ce7b",
     importpath = "golang.org/x/crypto",
