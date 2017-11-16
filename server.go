@@ -2,7 +2,6 @@
 package server
 
 import (
-	"flag"
 	"log"
 	"net/http"
 	"time"
@@ -39,8 +38,6 @@ type Config struct {
 }
 
 func Run(s Server) {
-	flag.Parse()
-
 	// Parse config & prepare session handler.
 	cfg, se, cs, err := s.ParseConfig()
 	if err != nil {
