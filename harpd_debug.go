@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,8 +15,8 @@ import (
 	"github.com/BranLwyd/harpocrates/server"
 )
 
-const (
-	debugU2FRegistration = `BQSBXpTec0+pBxOno2+tZvspGT3kL2x5CGNGNjoIpI0wvlxxyhOXi4XCR3x4lF+o3Kl0g16cffetBRF+ApH/fFa2QBCXlXW+fatptZnZyvULE8spyD4h+lgazjNuJjOv/Jgsy7Zbmbk5Uceoacxc0NFlCMFADvT73eUuyYtCwMp03iUwggJKMIIBMqADAgECAgRXFvfAMA0GCSqGSIb3DQEBCwUAMC4xLDAqBgNVBAMTI1l1YmljbyBVMkYgUm9vdCBDQSBTZXJpYWwgNDU3MjAwNjMxMCAXDTE0MDgwMTAwMDAwMFoYDzIwNTAwOTA0MDAwMDAwWjAsMSowKAYDVQQDDCFZdWJpY28gVTJGIEVFIFNlcmlhbCAyNTA1NjkyMjYxNzYwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARk2RxU1tlXjdOwYHhMRjbVSKOYOq81J87rLcbjK2eeM/zp6GMUrbz4V1IbL0xJn5SvcFVlviIZWym2Tk2tDdBiozswOTAiBgkrBgEEAYLECgIEFTEuMy42LjEuNC4xLjQxNDgyLjEuNTATBgsrBgEEAYLlHAIBAQQEAwIFIDANBgkqhkiG9w0BAQsFAAOCAQEAeJsYypuk23Yg4viLjP3pUSZtKiJ31eP76baMmqDpGmpI6nVM7wveWYQDba5/i6P95ktRdgTDoRsubXVNSjcZ76h2kw+g4PMGP1pMoLygMU9/BaPqXU7dkdNKZrVdXI+obgDnv1/dgCN+s9uCPjTjEmezSarHnCSnEqWegEqqjWupJSaid6dx3jFqc788cR/FTSJmJ/rXleT0ThtwA08J/P44t94peJP7WayLHDPPxca+XY5Mwn9KH0b2+ET4eMByi9wd+6Zx2hCH9Yzjjllro/Kf0FlBXcUKoy+JFHzT2wgBN9TmW7zrC7/lQYgYjswUMRh5UZKrOnOHqaVyfxBIhjBEAiAf9Ct62olZrM9/3zYrAtZJp2UA2ez47O2cg294x15CUwIgQPcLJ0i4iORmJdKR9WdJS1xw7HP/Gcjj1xCll1gGK4w`
+var (
+	u2f = flag.String("u2f", "", "If specified, the U2F key to use.")
 )
 
 // serv implements server.Server.
@@ -33,10 +34,16 @@ func (serv) ParseConfig() (_ *server.Config, serializedEntity string, _ *counter
 	if err := debug_assets.RestoreAssets(passDir, "debug/passwords"); err != nil {
 		return nil, "", nil, fmt.Errorf("could not prepare password directory: %v", err)
 	}
+	var u2fRegs []string
+	if *u2f != "" {
+		u2fRegs = []string{*u2f}
+	} else {
+		log.Printf("No U2F registration specified. Navigate to https://localhost:8080/register to register a token, then specify it via --u2f.")
+	}
 	cfg := &server.Config{
 		HostName:            "localhost:8080",
 		PassDir:             filepath.Join(passDir, "debug/passwords"),
-		U2FRegistrations:    []string{debugU2FRegistration},
+		U2FRegistrations:    u2fRegs,
 		SessionDurationSecs: 300,
 		NewSessionRate:      1,
 	}
