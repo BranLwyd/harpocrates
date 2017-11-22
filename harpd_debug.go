@@ -104,7 +104,7 @@ func (serv) Serve(_ *server.Config, h http.Handler) error {
 		Addr:    ":8080",
 		Handler: handler.NewLogging("debug", handler.NewSecureHeader(h)),
 	}
-	log.Printf("Serving debug on https://%s:8080", *hostname)
+	log.Printf(`Serving debug on https://%s:8080 [the password is "password"]`, *hostname)
 	return server.ListenAndServeTLS("", "")
 }
 
