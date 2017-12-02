@@ -8,6 +8,7 @@ go_prefix("github.com/BranLwyd/harpocrates")
 go_binary(
     name = "harpd",
     srcs = ["harpd.go"],
+    pure = "on",
     deps = [
         "//:counter",
         "//:server",
@@ -19,6 +20,7 @@ go_binary(
 go_binary(
     name = "harpd_debug",
     srcs = ["harpd_debug.go"],
+    pure = "on",
     deps = [
         "//:counter",
         "//:debug_assets",
