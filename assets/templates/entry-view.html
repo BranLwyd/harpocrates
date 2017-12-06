@@ -3,6 +3,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=0.5" />
 	<title>{{name .Path}} - Harpocrates</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
+	<script type="application/javascript" src="/entry-view.js"></script>
 </head>
 <body>
 	<div class="content">
@@ -14,13 +15,19 @@
 		</div>
 
 		<div class="inner-content">
-			<pre id="passdata">{{linkify .Content}}</pre>
+			<div id="content-view" class="content-view">{{if .Content}}<pre id="passdata">{{linkify .Content}}</pre>{{else}}No entry for {{name .Path}}.{{end}}</div>
+
+			<form method="POST" id="content-edit" class="content-edit">
+				<div><textarea id="content-edit-content" name="content">{{.Content}}</textarea></div>
+				<div>Randomly-generated new password: <code>{{.GeneratedPassword}}</code></div>
+				<input type="hidden" name="action" value="update" />
+				<div><input type="submit" value="Submit" /></div>
+			</form>
+
 			<div class="controls">
-				<a href="{{dir .Path}}"><span class="fa">&#xf00d;</span> Close</a>
+				<a id="edit-link" href><span class="fa">&#xf040;</span> Edit</a> | <a href="{{dir .Path}}"><span class="fa">&#xf00d;</span> Close</a>
 			</div>
 		</div>
 	</div>
-
-	<script type="application/javascript" src="/entry-view.js"></script>
 </body>
 </html>

@@ -98,3 +98,20 @@ ul.entry-list li:before {
   float: left;
   width: 1.3em;
 }
+
+.content-view {
+  margin-bottom: 14px;
+  margin-top: 14px;
+}
+
+.content-edit {
+  display: none;
+  margin-bottom: 14px;
+  margin-top: 14px;
+}
+
+.content-edit textarea {
+  resize: none;
+  height: 20em;
+  width: 100%;
+}

@@ -2,6 +2,8 @@ package handler
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log"
@@ -19,7 +21,7 @@ import (
 var (
 	urlRe = xurls.Strict()
 
-	entryViewTmpl = template.Must(template.New("entry-view").Funcs(map[string]interface{}{
+	entryTmplFuncs = map[string]interface{}{
 		"name": path.Base,
 		"dir": func(entryPath string) string {
 			d := path.Dir(entryPath)
@@ -53,10 +55,6 @@ var (
 			}
 			return template.HTML(buf.String()), nil
 		},
-	}).Parse(string(assets.MustAsset("templates/entry-view.html"))))
-
-	dirViewTmpl = template.Must(template.New("directory-view").Funcs(map[string]interface{}{
-		"name": path.Base,
 		"parentDir": func(dirPath string) string {
 			if dirPath == "/" {
 				return ""
@@ -69,7 +67,10 @@ var (
 			}
 			return pd + "/"
 		},
-	}).Parse(string(assets.MustAsset("templates/directory-view.html"))))
+	}
+
+	entryViewTmpl = template.Must(template.New("entry-view").Funcs(entryTmplFuncs).Parse(string(assets.MustAsset("templates/entry-view.html"))))
+	dirViewTmpl   = template.Must(template.New("directory-view").Funcs(entryTmplFuncs).Parse(string(assets.MustAsset("templates/directory-view.html"))))
 )
 
 // passwordHandler handles all password content (i.e. the main UI).
@@ -99,31 +100,45 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path, isDir := parsePath(r.URL.Path)
-	if isDir {
-		ph.serveDirectoryHTTP(w, r, sess, path)
-	} else {
-		ph.serveEntryHTTP(w, r, sess, path)
+	switch {
+	case isDir && r.Method == http.MethodGet:
+		ph.serveDirectoryViewHTTP(w, r, sess, path)
+
+	case !isDir && r.Method == http.MethodGet:
+		ph.serveEntryViewHTTP(w, r, sess, path)
+
+	case !isDir && r.Method == http.MethodPost:
+		ph.serveEntryUpdateHTTP(w, r, sess, path)
+
+	default:
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 	}
 }
 
-func (ph passwordHandler) serveEntryHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
-	// Get entry content.
-	content, err := sess.GetStore().Get(entryPath)
-	if err != nil {
-		if err == password.ErrNoEntry {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-			return
-		}
-		log.Printf("Could not get entry %q in password handler: %v", entryPath, err)
+func (ph passwordHandler) serveEntryViewHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
+	// Randomly generate a new password.
+	var passBytes [16]byte
+	if _, err := rand.Read(passBytes[:]); err != nil {
+		log.Printf("Could not generate password: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	pass := base64.RawURLEncoding.EncodeToString(passBytes[:])
 
-	// Render page.
+	// Get entry content & serve based on whether the entry exists or not.
+	content, err := sess.GetStore().Get(entryPath)
+	if err == password.ErrNoEntry {
+		content = ""
+	} else if err != nil {
+		log.Printf("Could not get entry %q in password handler: %v", entryPath, err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
 	data := struct {
-		Path    string
-		Content string
-	}{entryPath, content}
+		Path              string
+		Content           string
+		GeneratedPassword string
+	}{entryPath, content, pass}
 	var buf bytes.Buffer
 	if err := entryViewTmpl.Execute(&buf, data); err != nil {
 		log.Printf("Could not execute entry view template: %v", err)
@@ -133,7 +148,27 @@ func (ph passwordHandler) serveEntryHTTP(w http.ResponseWriter, r *http.Request,
 	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
 }
 
-func (ph passwordHandler) serveDirectoryHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, dirPath string) {
+func (ph passwordHandler) serveEntryUpdateHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
+	// Update entry content.
+	if content := r.FormValue("content"); content != "" {
+		if err := sess.GetStore().Put(entryPath, content); err != nil {
+			log.Printf("Could not update entry content: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if err := sess.GetStore().Delete(entryPath); err != nil && err != password.ErrNoEntry {
+			log.Printf("Could not delete entry content: %v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Display new content to user.
+	ph.serveEntryViewHTTP(w, r, sess, entryPath)
+}
+
+func (ph passwordHandler) serveDirectoryViewHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, dirPath string) {
 	pathEntries, err := sess.GetStore().List()
 	if err != nil {
 		log.Printf("Could not get entry list in password handler: %v", err)
