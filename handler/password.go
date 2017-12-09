@@ -149,6 +149,12 @@ func (ph passwordHandler) serveEntryViewHTTP(w http.ResponseWriter, r *http.Requ
 }
 
 func (ph passwordHandler) serveEntryUpdateHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
+	// Check action type.
+	if r.FormValue("action") != "update-entry" {
+		http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
+		return
+	}
+
 	// Update entry content.
 	if content := r.FormValue("content"); content != "" {
 		if err := sess.GetStore().Put(entryPath, content); err != nil {
