@@ -17,6 +17,18 @@ go_repository(
 )
 
 go_repository(
+    name = "com_github_jteeuwen_go-bindata",
+    commit = "a0ff2567cfb70903282db057e799fd826784d41d",
+    importpath = "github.com/jteeuwen/go-bindata",
+)
+
+go_repository(
+    name = "com_github_tstranex_u2f",
+    commit = "c46b9c6b15141e1c75d096258e560996b68ef8cb",
+    importpath = "github.com/tstranex/u2f",
+)
+
+go_repository(
     name = "org_golang_x_crypto",
     commit = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122",
     importpath = "golang.org/x/crypto",
@@ -26,10 +38,4 @@ go_repository(
     name = "org_golang_x_text",
     commit = "75cc3cad82b5f47d3fb229ddda8c5167da14f294",
     importpath = "golang.org/x/text",
-)
-
-go_repository(
-    name = "com_github_tstranex_u2f",
-    commit = "c46b9c6b15141e1c75d096258e560996b68ef8cb",
-    importpath = "github.com/tstranex/u2f",
 )
