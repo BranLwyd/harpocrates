@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -165,14 +164,7 @@ func (lh authHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess 
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-
-		var buf bytes.Buffer
-		if err := loginU2FAuthTmpl.Execute(&buf, string(reqBytes)); err != nil {
-			log.Printf("Could not execute U2F authentication template: %v", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+		serveTemplate(w, r, loginU2FAuthTmpl, string(reqBytes))
 
 	case http.MethodPost:
 		if r.FormValue("action") != "u2f-auth" {

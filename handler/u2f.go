@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"html/template"
@@ -56,14 +55,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-
-		var buf bytes.Buffer
-		if err := u2fRegisterTmpl.Execute(&buf, string(reqBytes)); err != nil {
-			log.Printf("Could not execute U2F registration template: %v", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+		serveTemplate(w, r, u2fRegisterTmpl, string(reqBytes))
 
 	case http.MethodPost:
 		c, err := sess.GetU2FChallenge(r.URL.RequestURI())

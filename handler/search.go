@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"log"
@@ -60,17 +59,10 @@ func (searchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// There are zero or multiple results. Show the results to the user.
-	data := struct {
+	serveTemplate(w, r, searchTmpl, struct {
 		Query   string
 		Matches []string
-	}{query, matches}
-	var buf bytes.Buffer
-	if err := searchTmpl.Execute(&buf, data); err != nil {
-		log.Printf("Could not execute search template: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+	}{query, matches})
 }
 
 func performSearch(r *http.Request) ([]string, error) {

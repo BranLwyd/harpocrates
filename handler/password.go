@@ -134,18 +134,11 @@ func (ph passwordHandler) serveEntryViewHTTP(w http.ResponseWriter, r *http.Requ
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
-	data := struct {
+	serveTemplate(w, r, entryViewTmpl, struct {
 		Path              string
 		Content           string
 		GeneratedPassword string
-	}{entryPath, content, pass}
-	var buf bytes.Buffer
-	if err := entryViewTmpl.Execute(&buf, data); err != nil {
-		log.Printf("Could not execute entry view template: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+	}{entryPath, content, pass})
 }
 
 func (ph passwordHandler) serveEntryUpdateHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
@@ -214,18 +207,11 @@ func (ph passwordHandler) serveDirectoryViewHTTP(w http.ResponseWriter, r *http.
 	}
 
 	// Render them.
-	data := struct {
+	serveTemplate(w, r, dirViewTmpl, struct {
 		Path           string
 		Entries        []string
 		Subdirectories []string
-	}{dirPath, entries, subdirs}
-	var buf bytes.Buffer
-	if err := dirViewTmpl.Execute(&buf, data); err != nil {
-		log.Printf("Could not execute directory view template: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+	}{dirPath, entries, subdirs})
 }
 
 func parsePath(p string) (cleanedPath string, isDir bool) {

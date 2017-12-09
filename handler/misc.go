@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"path"
@@ -11,6 +12,16 @@ import (
 
 	"github.com/BranLwyd/harpocrates/assets"
 )
+
+func serveTemplate(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data interface{}) {
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		log.Printf("Could not execute %q template: %v", tmpl.Name(), err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	newStatic(buf.Bytes(), "text/html; charset=utf-8").ServeHTTP(w, r)
+}
 
 func must(h http.Handler, err error) http.Handler {
 	if err != nil {
