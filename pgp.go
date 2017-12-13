@@ -1,8 +1,8 @@
-// Package password provides a simple interface to interact with password
-// stores compatible with the pass standard password manager. For more
-// information about pass, see https://www.passwordstore.org. (The author of
-// this package is not in any way associated with the authors of pass.)
-package password
+// Package pgp provides a simple interface to interact with password stores
+// compatible with the `pass` standard password manager. For more information
+// about `pass`, see https://www.passwordstore.org. (The author of this package
+// is not in any way associated with the authors of pass.)
+package pgp
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package password
+package pgp
 
 import (
 	"io/ioutil"

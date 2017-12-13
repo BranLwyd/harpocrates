@@ -43,8 +43,8 @@ go_library(
 )
 
 go_library(
-    name = "password",
-    srcs = ["password.go"],
+    name = "pgp",
+    srcs = ["pgp.go"],
     visibility = ["//handler:__pkg__"],
     deps = [
         "@org_golang_x_crypto//openpgp:go_default_library",
@@ -53,10 +53,10 @@ go_library(
 )
 
 go_test(
-    name = "password_test",
+    name = "pgp_test",
     timeout = "short",
-    srcs = ["password_test.go"],
-    library = ":password",
+    srcs = ["pgp_test.go"],
+    library = ":pgp",
     deps = [
         "@org_golang_x_crypto//openpgp:go_default_library",
     ],
@@ -86,7 +86,7 @@ go_library(
     deps = [
         "//:alert",
         "//:counter",
-        "//:password",
+        "//:pgp",
         "//:rate",
         "@com_github_tstranex_u2f//:go_default_library",
         "@org_golang_x_crypto//openpgp:go_default_library",

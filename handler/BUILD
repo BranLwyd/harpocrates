@@ -16,7 +16,7 @@ go_library(
     visibility = ["//:__pkg__"],
     deps = [
         "//:assets",
-        "//:password",
+        "//:pgp",
         "//:rate",
         "//:session",
         "@cc_mvdan_xurls//:go_default_library",

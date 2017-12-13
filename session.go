@@ -19,7 +19,7 @@ import (
 
 	"github.com/BranLwyd/harpocrates/alert"
 	"github.com/BranLwyd/harpocrates/counter"
-	"github.com/BranLwyd/harpocrates/password"
+	"github.com/BranLwyd/harpocrates/pgp"
 	"github.com/BranLwyd/harpocrates/rate"
 )
 
@@ -109,7 +109,7 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 			return "", nil, ErrWrongPassphrase
 		}
 	}
-	store, err := password.NewStore(h.baseDir, entity)
+	store, err := pgp.NewStore(h.baseDir, entity)
 	if err != nil {
 		return "", nil, fmt.Errorf("could not create password store: %v", err)
 	}
@@ -198,7 +198,7 @@ func (h *Handler) alert(code alert.Code, details string) {
 type Session struct {
 	id              string
 	h               *Handler
-	store           *password.Store
+	store           *pgp.Store
 	expirationTimer *time.Timer
 
 	mu            sync.RWMutex // protects all fields below
@@ -214,7 +214,7 @@ func (s *Session) Close() {
 }
 
 // GetStore returns the password store associated with this session.
-func (s *Session) GetStore() *password.Store {
+func (s *Session) GetStore() *pgp.Store {
 	return s.store
 }
 
