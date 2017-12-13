@@ -9,8 +9,10 @@ import (
 	"github.com/BranLwyd/harpocrates/alert"
 	"github.com/BranLwyd/harpocrates/counter"
 	"github.com/BranLwyd/harpocrates/handler"
-	"github.com/BranLwyd/harpocrates/pgp"
+	"github.com/BranLwyd/harpocrates/secret/key"
 	"github.com/BranLwyd/harpocrates/session"
+
+	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
 )
 
 // Server provides an interface to the functionality in a harpocrates server
@@ -18,7 +20,7 @@ import (
 type Server interface {
 	// ParseConfig parses the server configuration, returning a Config
 	// struct, the key to use, and a U2F counter store.
-	ParseConfig() (_ *Config, serializedEntity string, _ *counter.Store, _ error)
+	ParseConfig() (_ *Config, _ *pb.Key, _ *counter.Store, _ error)
 
 	// Serve serves the given HTTP handler. It should not return.
 	Serve(*Config, http.Handler) error
@@ -40,7 +42,7 @@ type Config struct {
 
 func Run(s Server) {
 	// Parse config & prepare session handler.
-	cfg, se, cs, err := s.ParseConfig()
+	cfg, k, cs, err := s.ParseConfig()
 	if err != nil {
 		log.Fatalf("Could not parse configuration: %v", err)
 	}
@@ -51,7 +53,10 @@ func Run(s Server) {
 	} else {
 		alerter = alert.NewLog()
 	}
-	vault := pgp.NewVault(cfg.PassDir, se)
+	vault, err := key.NewVault(cfg.PassDir, k)
+	if err != nil {
+		log.Fatalf("Could not create secret vault: %v", err)
+	}
 	sh, err := session.NewHandler(vault, cfg.HostName, cfg.U2FRegistrations, sessionDuration, cs, cfg.NewSessionRate, alerter)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)

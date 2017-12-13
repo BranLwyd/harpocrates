@@ -21,6 +21,9 @@ import (
 	"github.com/BranLwyd/harpocrates/debug_assets"
 	"github.com/BranLwyd/harpocrates/handler"
 	"github.com/BranLwyd/harpocrates/server"
+	"github.com/golang/protobuf/proto"
+
+	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
 )
 
 var (
@@ -31,17 +34,22 @@ var (
 // serv implements server.Server.
 type serv struct{}
 
-func (serv) ParseConfig() (_ *server.Config, serializedEntity string, _ *counter.Store, _ error) {
-	se := string(debug_assets.MustAsset("debug/key"))
+func (serv) ParseConfig() (_ *server.Config, _ *pb.Key, _ *counter.Store, _ error) {
+	keyBytes := debug_assets.MustAsset("debug/key")
+	k := &pb.Key{}
+	if err := proto.Unmarshal(keyBytes, k); err != nil {
+		return nil, nil, nil, fmt.Errorf("could not parse key: %v", err)
+	}
+
 	cs := counter.NewMemoryStore()
 
 	passDir, err := ioutil.TempDir("", "harpd_debug_")
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("could not create temporary directory: %v", err)
+		return nil, nil, nil, fmt.Errorf("could not create temporary directory: %v", err)
 	}
 	log.Printf("Debug mode: serving passwords from %q", passDir)
 	if err := debug_assets.RestoreAssets(passDir, "debug/passwords"); err != nil {
-		return nil, "", nil, fmt.Errorf("could not prepare password directory: %v", err)
+		return nil, nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
 	}
 	var u2fRegs []string
 	if *u2f != "" {
@@ -56,7 +64,7 @@ func (serv) ParseConfig() (_ *server.Config, serializedEntity string, _ *counter
 		SessionDurationSecs: 300,
 		NewSessionRate:      1,
 	}
-	return cfg, se, cs, nil
+	return cfg, k, cs, nil
 }
 
 func (serv) Serve(_ *server.Config, h http.Handler) error {

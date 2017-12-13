@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_prefix", "go_binary", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_prefix", "go_binary", "go_library")
 
 go_prefix("github.com/BranLwyd/harpocrates")
 
@@ -13,6 +13,8 @@ go_binary(
         ":counter",
         ":server",
         "//handler",
+        "//proto:key_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
         "@org_golang_x_crypto//acme/autocert:go_default_library",
     ],
 )
@@ -26,6 +28,8 @@ go_binary(
         ":debug_assets",
         ":server",
         "//handler",
+        "//proto:key_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )
 
@@ -43,36 +47,8 @@ go_library(
 )
 
 go_library(
-    name = "pgp",
-    srcs = ["pgp.go"],
-    visibility = ["//handler:__pkg__"],
-    deps = [
-        ":secret",
-        "@org_golang_x_crypto//openpgp:go_default_library",
-        "@org_golang_x_crypto//openpgp/packet:go_default_library",
-        "@org_golang_x_crypto//ripemd160:go_default_library",
-    ],
-)
-
-go_test(
-    name = "pgp_test",
-    timeout = "short",
-    srcs = ["pgp_test.go"],
-    library = ":pgp",
-    deps = [
-        "@org_golang_x_crypto//openpgp:go_default_library",
-    ],
-)
-
-go_library(
     name = "rate",
     srcs = ["rate.go"],
-    visibility = ["//handler:__pkg__"],
-)
-
-go_library(
-    name = "secret",
-    srcs = ["secret.go"],
     visibility = ["//handler:__pkg__"],
 )
 
@@ -82,9 +58,10 @@ go_library(
     deps = [
         ":alert",
         ":counter",
-        ":pgp",
         ":session",
         "//handler",
+        "//proto:key_proto",
+        "//secret:key",
     ],
 )
 
@@ -96,10 +73,8 @@ go_library(
         ":alert",
         ":counter",
         ":rate",
-        ":secret",
+        "//secret",
         "@com_github_tstranex_u2f//:go_default_library",
-        "@org_golang_x_crypto//openpgp:go_default_library",
-        "@org_golang_x_crypto//openpgp/packet:go_default_library",
     ],
 )
 

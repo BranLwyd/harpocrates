@@ -15,10 +15,22 @@ import (
 	"strings"
 
 	"github.com/BranLwyd/harpocrates/secret"
+	"github.com/BranLwyd/harpocrates/secret/key_private"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 	_ "golang.org/x/crypto/ripemd160"
+
+	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
 )
+
+func init() {
+	key_private.RegisterVaultFromKeyFunc(func(location string, key *pb.Key) (secret.Vault, error) {
+		if k := key.GetPgpKey(); k != nil {
+			return NewVault(location, string(k.GetSerializedEntity()))
+		}
+		return nil, nil
+	})
+}
 
 // InitVault initializes a new vault in the given base directory with the given
 // entity. The directory is created if needed. This function will fail if
@@ -54,11 +66,41 @@ func InitVault(baseDir string, entity *openpgp.Entity) (retErr error) {
 
 // NewVault creates a new vault using data in an existing directory `baseDir`
 // encrypted with the private key serialized in `serializedEntity`.
-func NewVault(baseDir, serializedEntity string) secret.Vault {
-	return &vault{
-		baseDir:          filepath.Clean(baseDir),
-		serializedEntity: serializedEntity,
+func NewVault(baseDir, serializedEntity string) (secret.Vault, error) {
+	baseDir = filepath.Clean(baseDir)
+
+	// Check that this entity is appropriate for the selected directory &
+	// that its keys are already decrypted.
+	entity, err := openpgp.ReadEntity(packet.NewReader(strings.NewReader(serializedEntity)))
+	if err != nil {
+		return nil, fmt.Errorf("could not read entity: %v", err)
 	}
+	keyID, err := keyID(baseDir)
+	if err != nil {
+		return nil, fmt.Errorf("could not get key ID: %v", err)
+	}
+	if _, ok := entity.Identities[keyID]; !ok {
+		return nil, errors.New("wrong entity")
+	}
+
+	return &vault{
+		baseDir:          baseDir,
+		serializedEntity: serializedEntity,
+	}, nil
+}
+
+// keyID gets the identity of the key used to create the given password store
+// directory.
+func keyID(baseDir string) (string, error) {
+	content, err := ioutil.ReadFile(filepath.Join(baseDir, ".gpg-id"))
+	if err != nil {
+		return "", fmt.Errorf("could not read %q: %v", filepath.Join(baseDir, ".gpg-id"), err)
+	}
+	idx := bytes.IndexByte(content, '\n')
+	if idx == -1 {
+		return string(content), nil
+	}
+	return string(content[:idx]), nil
 }
 
 // vault implements secret.Vault.
@@ -83,35 +125,11 @@ func (v *vault) Unlock(passphrase string) (secret.Store, error) {
 		}
 	}
 
-	// Check that this entity is appropriate for the selected directory &
-	// that its keys are already decrypted.
-	keyID, err := keyID(v.baseDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not get key ID: %v", err)
-	}
-	if _, ok := entity.Identities[keyID]; !ok {
-		return nil, errors.New("wrong entity")
-	}
-
 	// Only store the required entity in the keyring.
 	return &store{
 		baseDir: v.baseDir,
 		entity:  entity,
 	}, nil
-}
-
-// keyID gets the identity of the key used to create the given password store
-// directory.
-func keyID(baseDir string) (string, error) {
-	content, err := ioutil.ReadFile(filepath.Join(baseDir, ".gpg-id"))
-	if err != nil {
-		return "", fmt.Errorf("could not read %q: %v", filepath.Join(baseDir, ".gpg-id"), err)
-	}
-	idx := bytes.IndexByte(content, '\n')
-	if idx == -1 {
-		return string(content), nil
-	}
-	return string(content[:idx]), nil
 }
 
 // store implements secret.Store.

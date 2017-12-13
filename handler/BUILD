@@ -17,8 +17,8 @@ go_library(
     deps = [
         "//:assets",
         "//:rate",
-        "//:secret",
         "//:session",
+        "//secret",
         "@cc_mvdan_xurls//:go_default_library",
         "@com_github_tstranex_u2f//:go_default_library",
         "@org_golang_x_text//language:go_default_library",

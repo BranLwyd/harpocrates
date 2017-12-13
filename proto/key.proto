@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+// Key represents an encrypted key that can be used to secure a Harpocrates vault.
+message Key {
+  oneof key {
+    PGPKey pgp_key = 1;
+  }
+}
+
+// PGPKey represents a PGP key.
+message PGPKey {
+  // Serialized, encrypted PGP entity to use for encryption.
+  bytes serialized_entity = 1;
+}

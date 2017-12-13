@@ -2,7 +2,9 @@
 // data for harpocrates.
 package secret
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrWrongPassphrase = errors.New("wrong passphrase")
