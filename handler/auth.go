@@ -13,6 +13,7 @@ import (
 
 	"github.com/BranLwyd/harpocrates/assets"
 	"github.com/BranLwyd/harpocrates/rate"
+	"github.com/BranLwyd/harpocrates/secret"
 	"github.com/BranLwyd/harpocrates/session"
 )
 
@@ -112,7 +113,7 @@ func (lh authHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		sid, _, err := lh.sh.CreateSession(clientIP(r), r.FormValue("pass"))
-		if err == session.ErrWrongPassphrase {
+		if err == secret.ErrWrongPassphrase {
 			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 			return
 		}

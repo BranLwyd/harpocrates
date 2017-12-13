@@ -14,38 +14,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/BranLwyd/harpocrates/secret"
 	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/packet"
 	_ "golang.org/x/crypto/ripemd160"
 )
 
-var (
-	ErrNoEntry = errors.New("no such password store entry")
-)
-
-// Store represents a store of key-value entries. The keys can be thought of as
-// a service name (e.g. "My Bank"), while the values are some content about the
-// corresponding service which should be kept secret (e.g.  username, password,
-// security questions, etc).
-//
-// The entries are serialized to disk. The key of each entry is used to
-// determine a filename, which should contain slash-separated paths and a final
-// entry name. (Note that this implies that the service name itself is not kept
-// secret to anyone who can access the password store files.) The entry content
-// is encrypted using GPG.
-//
-// Store instances are safe for concurrent access from multiple goroutines.
-// However, they make no attempt to provide any form of transactionality, so an
-// update implemented as a Get() followed by a Put() may overwrite intervening
-// changes by another goroutine or process.
-type Store struct {
-	baseDir string
-	entity  *openpgp.Entity
-}
-
-// InitStore initializes a new store in the given base directory with the given
+// InitVault initializes a new vault in the given base directory with the given
 // entity. The directory is created if needed. This function will fail if
 // called on a directory that has already been initialized.
-func InitStore(baseDir string, entity *openpgp.Entity) (retErr error) {
+func InitVault(baseDir string, entity *openpgp.Entity) (retErr error) {
 	if err := os.MkdirAll(baseDir, 0700); err != nil {
 		return fmt.Errorf("could not create directory %q: %v", baseDir, err)
 	}
@@ -61,7 +39,7 @@ func InitStore(baseDir string, entity *openpgp.Entity) (retErr error) {
 	}()
 	var ident string
 	for id := range entity.Identities {
-		// TODO: allow identity to be chosen?
+		// TODO(bran): allow identity to be chosen?
 		ident = id
 		break
 	}
@@ -74,38 +52,57 @@ func InitStore(baseDir string, entity *openpgp.Entity) (retErr error) {
 	return nil
 }
 
-// NewStore creates a new Store with the given base directory, which must
-// already exist & be initialized, and using the given GPG entity, which must
-// already have its keys decrypted.
-func NewStore(baseDir string, entity *openpgp.Entity) (*Store, error) {
+// NewVault creates a new vault using data in an existing directory `baseDir`
+// encrypted with the private key serialized in `serializedEntity`.
+func NewVault(baseDir, serializedEntity string) secret.Vault {
+	return &vault{
+		baseDir:          filepath.Clean(baseDir),
+		serializedEntity: serializedEntity,
+	}
+}
+
+// vault implements secret.Vault.
+type vault struct {
+	baseDir          string // base directory containing password entries
+	serializedEntity string // entity used to encrypt/decrypt password entries
+}
+
+func (v *vault) Unlock(passphrase string) (secret.Store, error) {
+	// Read entity, decrypt keys using passphrase.
+	entity, err := openpgp.ReadEntity(packet.NewReader(strings.NewReader(v.serializedEntity)))
+	if err != nil {
+		return nil, fmt.Errorf("could not read entity: %v", err)
+	}
+	pb := []byte(passphrase)
+	if err := entity.PrivateKey.Decrypt(pb); err != nil {
+		return nil, secret.ErrWrongPassphrase
+	}
+	for _, sk := range entity.Subkeys {
+		if err := sk.PrivateKey.Decrypt(pb); err != nil {
+			return nil, secret.ErrWrongPassphrase
+		}
+	}
+
 	// Check that this entity is appropriate for the selected directory &
 	// that its keys are already decrypted.
-	keyID, err := KeyID(baseDir)
+	keyID, err := keyID(v.baseDir)
 	if err != nil {
 		return nil, fmt.Errorf("could not get key ID: %v", err)
 	}
 	if _, ok := entity.Identities[keyID]; !ok {
 		return nil, errors.New("wrong entity")
 	}
-	if entity.PrivateKey.Encrypted {
-		return nil, errors.New("key is encrypted")
-	}
-	for _, sk := range entity.Subkeys {
-		if sk.PrivateKey.Encrypted {
-			return nil, errors.New("key is encrypted")
-		}
-	}
 
 	// Only store the required entity in the keyring.
-	return &Store{
-		baseDir: filepath.Clean(baseDir),
+	return &store{
+		baseDir: v.baseDir,
 		entity:  entity,
 	}, nil
 }
 
-// KeyID gets the identity of the key used to create the given password store
+// keyID gets the identity of the key used to create the given password store
 // directory.
-func KeyID(baseDir string) (string, error) {
+func keyID(baseDir string) (string, error) {
 	content, err := ioutil.ReadFile(filepath.Join(baseDir, ".gpg-id"))
 	if err != nil {
 		return "", fmt.Errorf("could not read %q: %v", filepath.Join(baseDir, ".gpg-id"), err)
@@ -117,10 +114,20 @@ func KeyID(baseDir string) (string, error) {
 	return string(content[:idx]), nil
 }
 
-// List returns all of the entries currently existing in the password store in
-// lexical order. Entries contained in a subdirectory take the form
-// /path/to/entry-name.
-func (s *Store) List() ([]string, error) {
+// store implements secret.Store.
+//
+// The entries are serialized to disk. The key of each entry is used to
+// determine a filename, which should contain slash-separated paths and a final
+// entry name. (Note that this implies that the service name itself is not kept
+// secret to anyone who can access the password store files.) The entry content
+// is encrypted using GPG.
+type store struct {
+	baseDir string
+	entity  *openpgp.Entity
+}
+
+// List helps to implement secret.Store.
+func (s *store) List() ([]string, error) {
 	var entries []string
 	if err := filepath.Walk(s.baseDir, func(path string, info os.FileInfo, inErr error) error {
 		switch {
@@ -141,9 +148,8 @@ func (s *Store) List() ([]string, error) {
 	return entries, nil
 }
 
-// Get gets an entry's contents given its name. The entry name should conform
-// to the format returned by List().
-func (s *Store) Get(entry string) (string, error) {
+// Get helps to implement secret.Store.
+func (s *store) Get(entry string) (string, error) {
 	entryFilename, err := s.getEntryFilename(entry)
 	if err != nil {
 		return "", fmt.Errorf("could not get entry filename for %q: %v", entry, err)
@@ -151,7 +157,7 @@ func (s *Store) Get(entry string) (string, error) {
 	entryFile, err := os.Open(entryFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", ErrNoEntry
+			return "", secret.ErrNoEntry
 		}
 		return "", fmt.Errorf("could not open %q for reading: %v", entryFilename, err)
 	}
@@ -170,11 +176,10 @@ func (s *Store) Get(entry string) (string, error) {
 	return string(entryContent), nil
 }
 
-// Put updates an entry's contents to the given value. The entry name should
-// conform to the format returned by List().
+// Put helps to implement secret.Store.
 //
 // On POSIX-compliant systems, the update is atomic.
-func (s *Store) Put(entry string, content string) error {
+func (s *store) Put(entry string, content string) error {
 	entryFilename, err := s.getEntryFilename(entry)
 	if err != nil {
 		return fmt.Errorf("could not get entry filename for %q: %v", entry, err)
@@ -210,16 +215,15 @@ func (s *Store) Put(entry string, content string) error {
 	return nil
 }
 
-// Delete removes an entry by name. The entry name should conform to the format
-// returned by List().
-func (s *Store) Delete(entry string) error {
+// Delete helps to implement secret.Store.
+func (s *store) Delete(entry string) error {
 	entryFilename, err := s.getEntryFilename(entry)
 	if err != nil {
 		return fmt.Errorf("could not get entry filename for %q: %v", entry, err)
 	}
 	if err := os.Remove(entryFilename); err != nil {
 		if os.IsNotExist(err) {
-			return ErrNoEntry
+			return secret.ErrNoEntry
 		}
 		return fmt.Errorf("could not delete %q: %v", entryFilename, err)
 	}
@@ -251,7 +255,7 @@ func (s *Store) Delete(entry string) error {
 	return nil
 }
 
-func (s *Store) getEntryFilename(entry string) (string, error) {
+func (s *store) getEntryFilename(entry string) (string, error) {
 	if entry == "" {
 		return "", errors.New("missing entry")
 	}

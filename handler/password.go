@@ -14,7 +14,7 @@ import (
 	"mvdan.cc/xurls"
 
 	"github.com/BranLwyd/harpocrates/assets"
-	"github.com/BranLwyd/harpocrates/pgp"
+	"github.com/BranLwyd/harpocrates/secret"
 	"github.com/BranLwyd/harpocrates/session"
 )
 
@@ -127,11 +127,12 @@ func (ph passwordHandler) serveEntryViewHTTP(w http.ResponseWriter, r *http.Requ
 
 	// Get entry content & serve based on whether the entry exists or not.
 	content, err := sess.GetStore().Get(entryPath)
-	if err == pgp.ErrNoEntry {
+	if err == secret.ErrNoEntry {
 		content = ""
 	} else if err != nil {
 		log.Printf("Could not get entry %q in password handler: %v", entryPath, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
 	serveTemplate(w, r, entryViewTmpl, struct {
@@ -156,7 +157,7 @@ func (ph passwordHandler) serveEntryUpdateHTTP(w http.ResponseWriter, r *http.Re
 			return
 		}
 	} else {
-		if err := sess.GetStore().Delete(entryPath); err != nil && err != pgp.ErrNoEntry {
+		if err := sess.GetStore().Delete(entryPath); err != nil && err != secret.ErrNoEntry {
 			log.Printf("Could not delete entry content: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

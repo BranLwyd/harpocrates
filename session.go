@@ -8,19 +8,15 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/tstranex/u2f"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/packet"
 
 	"github.com/BranLwyd/harpocrates/alert"
 	"github.com/BranLwyd/harpocrates/counter"
-	"github.com/BranLwyd/harpocrates/pgp"
 	"github.com/BranLwyd/harpocrates/rate"
+	"github.com/BranLwyd/harpocrates/secret"
 )
 
 const (
@@ -29,7 +25,6 @@ const (
 )
 
 var (
-	ErrWrongPassphrase         = errors.New("wrong passphrase")
 	ErrNoSession               = errors.New("no such session")
 	ErrNoChallenge             = errors.New("no current challenge")
 	ErrU2FAuthenticationFailed = errors.New("U2F authentication failed")
@@ -41,18 +36,17 @@ type Handler struct {
 	mu       sync.RWMutex        // protects sessions
 	sessions map[string]*Session // by session ID
 
-	counters         *counter.Store     // Store of U2F counters by key handle.
-	sessionDuration  time.Duration      // how long sessions last
-	serializedEntity string             // entity used to encrypt/decrypt password entries
-	baseDir          string             // base directory containing password entries
-	appID            string             // U2F app ID
-	registrations    []u2f.Registration // U2F device registrations
-	rateLimiter      rate.Limiter       // rate limiter for creating new sessions
-	alerter          alert.Alerter      // used to notify user of alerts
+	vault           secret.Vault       // locked password data
+	sessionDuration time.Duration      // how long sessions last
+	counters        *counter.Store     // Store of U2F counters by key handle.
+	appID           string             // U2F app ID
+	registrations   []u2f.Registration // U2F device registrations
+	rateLimiter     rate.Limiter       // rate limiter for creating new sessions
+	alerter         alert.Alerter      // used to notify user of alerts
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(serializedEntity, baseDir, host string, registrations []string, sessionDuration time.Duration, cs *counter.Store, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
+func NewHandler(vault secret.Vault, host string, registrations []string, sessionDuration time.Duration, cs *counter.Store, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
@@ -71,21 +65,21 @@ func NewHandler(serializedEntity, baseDir, host string, registrations []string, 
 	}
 
 	return &Handler{
-		sessions:         make(map[string]*Session),
-		sessionDuration:  sessionDuration,
-		serializedEntity: serializedEntity,
-		baseDir:          filepath.Clean(baseDir),
-		appID:            fmt.Sprintf("https://%s", host),
-		registrations:    regs,
-		counters:         cs,
-		rateLimiter:      rate.NewLimiter(newSessionRate, 1),
-		alerter:          alerter,
+		sessions:        make(map[string]*Session),
+		vault:           vault,
+		sessionDuration: sessionDuration,
+		counters:        cs,
+		appID:           fmt.Sprintf("https://%s", host),
+		registrations:   regs,
+		rateLimiter:     rate.NewLimiter(newSessionRate, 1),
+		alerter:         alerter,
 	}, nil
 }
 
 // CreateSession attempts to create a new session, using the given passphrase.
-// It returns the new session's ID and the session, or ErrWrongPassphrase if
-// authentication occurs, and other errors if they occur.
+// It returns the new session's ID and the session, or
+// secret.ErrWrongPassphrase if an authentication error occurs, and other
+// errors if they occur.
 func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, error) {
 	// Respect rate limit.
 	if err := h.rateLimiter.Wait(clientID); err != nil {
@@ -95,23 +89,12 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 		return "", nil, fmt.Errorf("couldn't wait for rate limiter: %v", err)
 	}
 
-	// Read entity, decrypt keys using passphrase, create password store.
-	entity, err := openpgp.ReadEntity(packet.NewReader(strings.NewReader(h.serializedEntity)))
-	if err != nil {
-		return "", nil, fmt.Errorf("could not read entity: %v", err)
-	}
-	pb := []byte(passphrase)
-	if err := entity.PrivateKey.Decrypt(pb); err != nil {
-		return "", nil, ErrWrongPassphrase
-	}
-	for _, sk := range entity.Subkeys {
-		if err := sk.PrivateKey.Decrypt(pb); err != nil {
-			return "", nil, ErrWrongPassphrase
-		}
-	}
-	store, err := pgp.NewStore(h.baseDir, entity)
-	if err != nil {
-		return "", nil, fmt.Errorf("could not create password store: %v", err)
+	// Get a secret.Store using the supplied passphrase.
+	store, err := h.vault.Unlock(passphrase)
+	if err == secret.ErrWrongPassphrase {
+		return "", nil, err
+	} else if err != nil {
+		return "", nil, fmt.Errorf("could not unlock vault: %v", err)
 	}
 
 	// Generate session ID.
@@ -198,7 +181,7 @@ func (h *Handler) alert(code alert.Code, details string) {
 type Session struct {
 	id              string
 	h               *Handler
-	store           *pgp.Store
+	store           secret.Store
 	expirationTimer *time.Timer
 
 	mu            sync.RWMutex // protects all fields below
@@ -214,7 +197,7 @@ func (s *Session) Close() {
 }
 
 // GetStore returns the password store associated with this session.
-func (s *Session) GetStore() *pgp.Store {
+func (s *Session) GetStore() secret.Store {
 	return s.store
 }
 

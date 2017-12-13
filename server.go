@@ -9,6 +9,7 @@ import (
 	"github.com/BranLwyd/harpocrates/alert"
 	"github.com/BranLwyd/harpocrates/counter"
 	"github.com/BranLwyd/harpocrates/handler"
+	"github.com/BranLwyd/harpocrates/pgp"
 	"github.com/BranLwyd/harpocrates/session"
 )
 
@@ -50,7 +51,8 @@ func Run(s Server) {
 	} else {
 		alerter = alert.NewLog()
 	}
-	sh, err := session.NewHandler(se, cfg.PassDir, cfg.HostName, cfg.U2FRegistrations, sessionDuration, cs, cfg.NewSessionRate, alerter)
+	vault := pgp.NewVault(cfg.PassDir, se)
+	sh, err := session.NewHandler(vault, cfg.HostName, cfg.U2FRegistrations, sessionDuration, cs, cfg.NewSessionRate, alerter)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}

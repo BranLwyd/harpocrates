@@ -16,8 +16,8 @@ go_library(
     visibility = ["//:__pkg__"],
     deps = [
         "//:assets",
-        "//:pgp",
         "//:rate",
+        "//:secret",
         "//:session",
         "@cc_mvdan_xurls//:go_default_library",
         "@com_github_tstranex_u2f//:go_default_library",

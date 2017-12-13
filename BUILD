@@ -10,8 +10,8 @@ go_binary(
     srcs = ["harpd.go"],
     pure = "on",
     deps = [
-        "//:counter",
-        "//:server",
+        ":counter",
+        ":server",
         "//handler",
         "@org_golang_x_crypto//acme/autocert:go_default_library",
     ],
@@ -22,9 +22,9 @@ go_binary(
     srcs = ["harpd_debug.go"],
     pure = "on",
     deps = [
-        "//:counter",
-        "//:debug_assets",
-        "//:server",
+        ":counter",
+        ":debug_assets",
+        ":server",
         "//handler",
     ],
 )
@@ -47,7 +47,9 @@ go_library(
     srcs = ["pgp.go"],
     visibility = ["//handler:__pkg__"],
     deps = [
+        ":secret",
         "@org_golang_x_crypto//openpgp:go_default_library",
+        "@org_golang_x_crypto//openpgp/packet:go_default_library",
         "@org_golang_x_crypto//ripemd160:go_default_library",
     ],
 )
@@ -69,12 +71,19 @@ go_library(
 )
 
 go_library(
+    name = "secret",
+    srcs = ["secret.go"],
+    visibility = ["//handler:__pkg__"],
+)
+
+go_library(
     name = "server",
     srcs = ["server.go"],
     deps = [
-        "//:alert",
-        "//:counter",
-        "//:session",
+        ":alert",
+        ":counter",
+        ":pgp",
+        ":session",
         "//handler",
     ],
 )
@@ -84,10 +93,10 @@ go_library(
     srcs = ["session.go"],
     visibility = ["//handler:__pkg__"],
     deps = [
-        "//:alert",
-        "//:counter",
-        "//:pgp",
-        "//:rate",
+        ":alert",
+        ":counter",
+        ":rate",
+        ":secret",
         "@com_github_tstranex_u2f//:go_default_library",
         "@org_golang_x_crypto//openpgp:go_default_library",
         "@org_golang_x_crypto//openpgp/packet:go_default_library",
