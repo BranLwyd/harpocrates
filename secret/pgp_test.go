@@ -9,6 +9,8 @@ import (
 	"golang.org/x/crypto/openpgp"
 )
 
+// TODO(bran): move this test to file_test, since we aren't testing the encryption
+
 func TestInitVault(t *testing.T) {
 	t.Parallel()
 

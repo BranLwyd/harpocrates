@@ -27,15 +27,16 @@ import (
 )
 
 var (
-	u2f      = flag.String("u2f", "", "If specified, the U2F key to use.")
-	hostname = flag.String("hostname", "", "The hostname to serve with. Defaults to os.Hostname().")
+	u2f        = flag.String("u2f", "", "If specified, the U2F key to use.")
+	hostname   = flag.String("hostname", "", "The hostname to serve with. Defaults to os.Hostname().")
+	encryption = flag.String("encryption", "harp", "The type of encryption to use. Valid options include `harp` and `pgp`.")
 )
 
 // serv implements server.Server.
 type serv struct{}
 
 func (serv) ParseConfig() (_ *server.Config, _ *pb.Key, _ *counter.Store, _ error) {
-	keyBytes := debug_assets.MustAsset("debug/key")
+	keyBytes := debug_assets.MustAsset(fmt.Sprintf("debug/key.%s", *encryption))
 	k := &pb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
 		return nil, nil, nil, fmt.Errorf("could not parse key: %v", err)
@@ -48,7 +49,7 @@ func (serv) ParseConfig() (_ *server.Config, _ *pb.Key, _ *counter.Store, _ erro
 		return nil, nil, nil, fmt.Errorf("could not create temporary directory: %v", err)
 	}
 	log.Printf("Debug mode: serving passwords from %q", passDir)
-	if err := debug_assets.RestoreAssets(passDir, "debug/passwords"); err != nil {
+	if err := debug_assets.RestoreAssets(passDir, fmt.Sprintf("debug/passwords.%s", *encryption)); err != nil {
 		return nil, nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
 	}
 	var u2fRegs []string
@@ -59,7 +60,7 @@ func (serv) ParseConfig() (_ *server.Config, _ *pb.Key, _ *counter.Store, _ erro
 	}
 	cfg := &server.Config{
 		HostName:            fmt.Sprintf("%s:8080", *hostname),
-		PassDir:             filepath.Join(passDir, "debug/passwords"),
+		PassDir:             filepath.Join(passDir, fmt.Sprintf("debug/passwords.%s", *encryption)),
 		U2FRegistrations:    u2fRegs,
 		SessionDurationSecs: 300,
 		NewSessionRate:      1,
