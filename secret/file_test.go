@@ -1,60 +1,14 @@
-package pgp
+package file
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"golang.org/x/crypto/openpgp"
 )
-
-// TODO(bran): move this test to file_test, since we aren't testing the encryption
-
-func TestInitVault(t *testing.T) {
-	t.Parallel()
-
-	// Initialization.
-	dir, err := getDir()
-	if err != nil {
-		t.Fatalf("Could not get temporary directory: %v", err)
-	}
-	t.Logf("Got temporary directory %q", dir)
-	defer os.RemoveAll(dir)
-
-	firstEntity, err := openpgp.NewEntity("first entity", "some comment", "email@example.com", nil)
-	if err != nil {
-		t.Fatalf("Could not create entity: %v", err)
-	}
-	secondEntity, err := openpgp.NewEntity("second entity", "", "", nil)
-	if err != nil {
-		t.Fatalf("Could not create entity: %v", err)
-	}
-
-	// A call to InitVault should create a directory with a .gpg-id file in it.
-	if err := InitVault(dir, firstEntity); err != nil {
-		t.Fatalf("InitStore failed: %v", err)
-	}
-	gpgIdContent, err := ioutil.ReadFile(filepath.Join(dir, ".gpg-id"))
-	if err != nil {
-		t.Fatalf("Could not read .gpg-id: %v", err)
-	}
-	if string(gpgIdContent) != "first entity (some comment) <email@example.com>\n" {
-		t.Fatalf("Content of .gpg-id unexpected: %q", string(gpgIdContent))
-	}
-
-	// A second call to InitStore should fail, and not modify the existing .gpg-id file.
-	if err := InitVault(dir, secondEntity); err == nil {
-		t.Fatalf("Second InitStore unexpectedly succeeded")
-	}
-	gpgIdContent, err = ioutil.ReadFile(filepath.Join(dir, ".gpg-id"))
-	if err != nil {
-		t.Fatalf("Could not read .gpg-id: %v", err)
-	}
-	if string(gpgIdContent) != "first entity (some comment) <email@example.com>\n" {
-		t.Fatalf("Content of .gpg-id unexpectedly changed after second call to InitStore: %q", string(gpgIdContent))
-	}
-}
 
 func TestGetPutDelete(t *testing.T) {
 	t.Parallel()
@@ -65,14 +19,7 @@ func TestGetPutDelete(t *testing.T) {
 		t.Fatalf("Could not get temporary directory: %v", err)
 	}
 	defer os.RemoveAll(dir)
-	entity, err := openpgp.NewEntity("entity", "", "", nil)
-	if err != nil {
-		t.Fatalf("Could not create entity: %v", err)
-	}
-	if err := InitVault(dir, entity); err != nil {
-		t.Fatalf("Could not initialize password store: %v", err)
-	}
-	store := newStore(dir, entity)
+	store := NewStore(dir, ".foo", fakeCrypter{})
 
 	// Basic tests.
 	if err := store.Put("entry", "content"); err != nil {
@@ -121,21 +68,11 @@ func TestDirectoryTraversal(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	innerDir := filepath.Join(dir, "inner")
-	entity, err := openpgp.NewEntity("entity", "", "", nil)
-	if err != nil {
-		t.Fatalf("Could not create entity: %v", err)
-	}
-	if err := InitVault(dir, entity); err != nil {
-		t.Fatalf("Could not initialize outer password store: %v", err)
-	}
-	outerStore := newStore(dir, entity)
+	outerStore := NewStore(dir, ".foo", fakeCrypter{})
 	if err != nil {
 		t.Fatalf("Could not create outer password store: %v", err)
 	}
-	if err := InitVault(innerDir, entity); err != nil {
-		t.Fatalf("Could not initialize inner password store: %v", err)
-	}
-	innerStore := newStore(innerDir, entity)
+	innerStore := NewStore(innerDir, ".foo", fakeCrypter{})
 	if err != nil {
 		t.Fatalf("Could not create inner password store: %v", err)
 	}
@@ -183,13 +120,6 @@ func TestDirectoryTraversal(t *testing.T) {
 	}
 }
 
-func newStore(baseDir string, entity *openpgp.Entity) *store {
-	return &store{
-		baseDir: baseDir,
-		entity:  entity,
-	}
-}
-
 func getDir() (string, error) {
 	dir, err := ioutil.TempDir("", ".gopass_tmp_")
 	if err != nil {
@@ -199,4 +129,19 @@ func getDir() (string, error) {
 		return "", err
 	}
 	return dir, nil
+}
+
+type fakeCrypter struct{}
+
+func (fakeCrypter) Encrypt(entryName, content string) ([]byte, error) {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "ENCRYPTED:%s", content)
+	return buf.Bytes(), nil
+}
+
+func (fakeCrypter) Decrypt(entryName string, ciphertext []byte) (string, error) {
+	if !bytes.HasPrefix(ciphertext, []byte("ENCRYPTED:")) {
+		return "", errors.New("not encrypted")
+	}
+	return string(bytes.TrimPrefix(ciphertext, []byte("ENCRYPTED:"))), nil
 }

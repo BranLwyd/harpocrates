@@ -13,6 +13,13 @@ go_library(
     ],
 )
 
+go_test(
+    name = "file_test",
+    timeout = "short",
+    srcs = ["file_test.go"],
+    library = ":file",
+)
+
 go_library(
     name = "harp",
     srcs = ["harp.go"],
@@ -60,16 +67,6 @@ go_library(
         "@org_golang_x_crypto//openpgp:go_default_library",
         "@org_golang_x_crypto//openpgp/packet:go_default_library",
         "@org_golang_x_crypto//ripemd160:go_default_library",
-    ],
-)
-
-go_test(
-    name = "pgp_test",
-    timeout = "short",
-    srcs = ["pgp_test.go"],
-    library = ":pgp",
-    deps = [
-        "@org_golang_x_crypto//openpgp:go_default_library",
     ],
 )
 
