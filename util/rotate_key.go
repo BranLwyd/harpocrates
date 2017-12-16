@@ -5,12 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
+	"os"
 
-	kpb "github.com/BranLwyd/harpocrates/proto/key_proto"
 	"github.com/BranLwyd/harpocrates/secret"
 	"github.com/BranLwyd/harpocrates/secret/key"
 	"github.com/golang/protobuf/proto"
+	"github.com/howeyc/gopass"
+
+	kpb "github.com/BranLwyd/harpocrates/proto/key_proto"
 )
 
 var (
@@ -19,6 +21,12 @@ var (
 	outKeyFile  = flag.String("out_key", "", "Location of the output key.")
 	outLocation = flag.String("out_location", "", "Location of the output password entries.")
 )
+
+func die(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, a...)
+	fmt.Fprintln(os.Stderr, "")
+	os.Exit(1)
+}
 
 func vault(location, keyFile string) (secret.Vault, error) {
 	keyBytes, err := ioutil.ReadFile(keyFile)
@@ -39,52 +47,61 @@ func vault(location, keyFile string) (secret.Vault, error) {
 func main() {
 	flag.Parse()
 	if *inKeyFile == "" {
-		log.Fatalf("--in_key is required")
+		die("--in_key is required")
 	}
 	if *inLocation == "" {
-		log.Fatalf("--in_location is required")
+		die("--in_location is required")
 	}
 	if *outKeyFile == "" {
-		log.Fatalf("--out_key is required")
+		die("--out_key is required")
 	}
 	if *outLocation == "" {
-		log.Fatalf("--out_location is required")
+		die("--out_location is required")
 	}
 
 	// Create vaults.
 	inVault, err := vault(*inLocation, *inKeyFile)
 	if err != nil {
-		log.Fatalf("Could not create `in` vault: %v", err)
+		die("Could not initialize `in` vault: %v", err)
 	}
 	outVault, err := vault(*outLocation, *outKeyFile)
 	if err != nil {
-		log.Fatalf("Could not create `out` vault: %v", err)
+		die("Could not initialize `out` vault: %v", err)
 	}
 
 	// Unlock vaults.
-	passphrase := "password" // TODO(bran): allow custom passwords
-	inStore, err := inVault.Unlock(passphrase)
+	fmt.Printf("Passphrase for `in` key: ")
+	inPass, err := gopass.GetPasswd()
 	if err != nil {
-		log.Fatalf("Could not create `in` store: %v", err)
+		die("Could not get passphrase: %v", err)
 	}
-	outStore, err := outVault.Unlock(passphrase)
+	inStore, err := inVault.Unlock(string(inPass))
 	if err != nil {
-		log.Fatalf("Could not create `out` store: %v", err)
+		die("Could not open `in` vault: %v", err)
+	}
+	fmt.Printf("Passphrase for `out` key: ")
+	outPass, err := gopass.GetPasswd()
+	if err != nil {
+		die("Could not get passphrase: %v", err)
+	}
+	outStore, err := outVault.Unlock(string(outPass))
+	if err != nil {
+		die("Could not open `out` vault: %v", err)
 	}
 
 	// Copy entries from `inStore` to `outStore`.
 	es, err := inStore.List()
 	if err != nil {
-		log.Fatalf("Could not list `in` entries: %v", err)
+		die("Could not list entries in `in` vault: %v", err)
 	}
 	for _, e := range es {
-		log.Printf("Copying %q", e)
+		fmt.Printf("Copying %s\n", e)
 		content, err := inStore.Get(e)
 		if err != nil {
-			log.Fatalf("Could not get %q: %v", e, err)
+			die("Could not get %q: %v", e, err)
 		}
 		if err := outStore.Put(e, content); err != nil {
-			log.Fatalf("Could not put %q: %v", e, err)
+			die("Could not put %q: %v", e, err)
 		}
 	}
 }
