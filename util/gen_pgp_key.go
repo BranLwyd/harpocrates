@@ -7,12 +7,15 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 
 	"github.com/golang/protobuf/proto"
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/packet"
 
 	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
 )
@@ -37,10 +40,15 @@ func main() {
 		die("--out is required")
 	}
 
+	// Read serialized entity, and parse it to validate that it is really a PGP serialized entity.
 	se, err := ioutil.ReadFile(*seFile)
 	if err != nil {
 		die("Could not read %q: %v", *seFile, err)
 	}
+	if _, err := openpgp.ReadEntity(packet.NewReader(bytes.NewReader(se))); err != nil {
+		die("Could not parse serialized entity: %v", err)
+	}
+
 	keyBytes, err := proto.Marshal(&pb.Key{
 		Key: &pb.Key_PgpKey{&pb.PGPKey{
 			SerializedEntity: se,
