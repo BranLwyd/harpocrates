@@ -20,7 +20,7 @@ func NewStore(baseDir, extension string, crypter Crypter) secret.Store {
 		extension = "." + extension
 	}
 	return &store{
-		baseDir:   baseDir,
+		baseDir:   filepath.Clean(baseDir),
 		extension: extension,
 		crypter:   crypter,
 	}

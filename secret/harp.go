@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
+	"path/filepath"
 
 	"github.com/BranLwyd/harpocrates/secret"
 	"github.com/BranLwyd/harpocrates/secret/file"
@@ -26,7 +27,7 @@ func init() {
 		if k := key.GetHarpKey(); k != nil {
 			// TODO(bran): validate fields
 			return &vault{
-				baseDir:     location,
+				baseDir:     filepath.Clean(location),
 				encryptedEK: k.EncryptedKey,
 				salt:        k.Salt,
 				n:           int(k.N),
