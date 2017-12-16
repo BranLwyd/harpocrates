@@ -102,7 +102,7 @@ func (s *store) Put(entry, content string) error {
 		return fmt.Errorf("could not get entry filename for %q: %v", entry, err)
 	}
 	entryDir := filepath.Dir(entryFilename)
-	if err := os.MkdirAll(entryDir, 0700); err != nil {
+	if err := os.MkdirAll(entryDir, 0770); err != nil {
 		return fmt.Errorf("could not create directory %q: %v", entryDir, err)
 	}
 	tempFile, err := ioutil.TempFile(entryDir, ".gopass_tmp_")
@@ -112,6 +112,9 @@ func (s *store) Put(entry, content string) error {
 	tempFilename := tempFile.Name()
 	defer os.Remove(tempFilename)
 	defer tempFile.Close()
+	if err := os.Chmod(tempFilename, 0660); err != nil {
+		return fmt.Errorf("could not set permissions: %v", err)
+	}
 	if _, err := tempFile.Write(ciphertext); err != nil {
 		return fmt.Errorf("could not write encrypted content: %v", err)
 	}
