@@ -25,7 +25,6 @@ import (
 func init() {
 	key_private.RegisterVaultFromKeyFunc(func(location string, key *kpb.Key) (secret.Vault, error) {
 		if k := key.GetHarpKey(); k != nil {
-			// TODO(bran): validate fields
 			return &vault{
 				baseDir:     filepath.Clean(location),
 				encryptedEK: k.EncryptedKey,

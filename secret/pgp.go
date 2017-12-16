@@ -33,7 +33,6 @@ func init() {
 
 // NewVault creates a new vault using data in an existing directory `baseDir`
 // encrypted with the private key serialized in `serializedEntity`.
-// TODO(bran): make this private (only called by the RegisterVaultFromKeyFunc function)
 func newVault(baseDir, serializedEntity string) (secret.Vault, error) {
 	return &vault{
 		baseDir:          filepath.Clean(baseDir),
