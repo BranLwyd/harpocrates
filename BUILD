@@ -44,6 +44,10 @@ go_library(
 go_library(
     name = "counter",
     srcs = ["counter.go"],
+    deps = [
+        "//proto:counter_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+    ],
 )
 
 go_library(

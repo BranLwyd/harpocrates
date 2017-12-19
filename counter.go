@@ -2,14 +2,16 @@
 package counter
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
+
+	"github.com/golang/protobuf/proto"
+
+	cpb "github.com/BranLwyd/harpocrates/proto/counter_proto"
 )
 
 // Store stores a uint32 counter keyed by an opaque string, and serializes
@@ -17,114 +19,112 @@ import (
 // concurrent use from multiple goroutines.
 type Store struct {
 	mu      sync.RWMutex // protects store, file named by ctrFile
-	store   map[string]uint32
+	ctrs    *cpb.Counters
 	ctrFile string
 }
 
 func NewStore(counterFile string) (*Store, error) {
-	f, err := os.Open(counterFile)
-	if err != nil {
-		return nil, fmt.Errorf("could not open U2F counter file: %v", err)
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Printf("Error closing counter file: %v", err)
+	// Parse the counter file.
+	counterFile = filepath.Clean(counterFile)
+	ctrs := &cpb.Counters{}
+	cfBytes, err := ioutil.ReadFile(counterFile)
+	switch {
+	case err == nil:
+		if err := proto.Unmarshal(cfBytes, ctrs); err != nil {
+			return nil, fmt.Errorf("could not parse U2F counter file: %v", err)
 		}
-	}()
 
-	s := make(map[string]interface{})
-	if err := json.NewDecoder(f).Decode(&s); err != nil {
-		return nil, fmt.Errorf("could not parse U2F counter file: %v", err)
-	}
-	store := make(map[string]uint32)
-	for k, v := range s {
-		strV, ok := v.(string)
-		if !ok {
-			return nil, fmt.Errorf("could not parse value for handle %q", k)
-		}
-		numV, err := strconv.ParseUint(strV, 10, 32)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse value for handle %q", k)
-		}
-		store[k] = uint32(numV)
+	case os.IsNotExist(err):
+		// Just start up, logging to notify that the counter file is new.
+		log.Printf("Creating counter file %q", counterFile)
+
+	default:
+		return nil, fmt.Errorf("could not read U2F counter file: %v", err)
 	}
 
-	return &Store{
-		store:   store,
+	// Create a store, then write to make sure we can update the counter file.
+	s := &Store{
+		ctrs:    ctrs,
 		ctrFile: counterFile,
-	}, nil
+	}
+	if err := s.write(); err != nil {
+		return nil, fmt.Errorf("could not write U2F counters: %v", err)
+	}
+	return s, nil
 }
 
 // NewMemoryStore creates a new counter store that has no backing file.
 // It should be used only for testing.
 func NewMemoryStore() *Store {
 	return &Store{
-		store: make(map[string]uint32),
+		ctrs: &cpb.Counters{},
 	}
 }
 
 // Get gets the value associated with the given handle. It returns 0 if no such
 // handle exists.
-func (c *Store) Get(handle string) uint32 {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.store[handle]
+func (s *Store) Get(handle string) uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.ctrs.Counter[handle]
 }
 
 // Set sets the value associated with the given handle. If it returns a non-nil
 // error, the store is left unmodified.
-func (c *Store) Set(handle string, val uint32) (retErr error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (s *Store) Set(handle string, val uint32) (retErr error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	// Update file.
-	if c.ctrFile != "" {
-		s := make(map[string]string)
-		for k, v := range c.store {
-			if k == handle {
-				continue
-			}
-			s[k] = strconv.FormatUint(uint64(v), 10)
+	setVal := func(val uint32) {
+		if s.ctrs.Counter == nil {
+			s.ctrs.Counter = map[string]uint32{}
 		}
-		if val != 0 {
-			s[handle] = strconv.FormatUint(uint64(val), 10)
-		}
-
-		f, err := ioutil.TempFile(filepath.Dir(c.ctrFile), ".harp_u2fctr")
-		if err != nil {
-			return fmt.Errorf("could not create temporary file: %v", err)
-		}
-
-		closeAttempted := false
-		defer func() {
-			if retErr != nil {
-				if !closeAttempted {
-					if err := f.Close(); err != nil {
-						log.Printf("Could not close temporary file: %v", err)
-					}
-				}
-				if err := os.Remove(f.Name()); err != nil {
-					log.Printf("Could not remove temporary file: %v", err)
-				}
-			}
-		}()
-
-		if err := json.NewEncoder(f).Encode(s); err != nil {
-			return fmt.Errorf("could not write U2F counter file: %v", err)
-		}
-		if err := f.Close(); err != nil {
-			return fmt.Errorf("could not close U2F counter file: %v", err)
-		}
-		if err := os.Rename(f.Name(), c.ctrFile); err != nil {
-			return fmt.Errorf("could not rename U2F counter file: %v", err)
+		if val == 0 {
+			delete(s.ctrs.Counter, handle)
+		} else {
+			s.ctrs.Counter[handle] = val
 		}
 	}
+	// Roll forward, rolling back on error.
+	defer func(oldVal uint32) {
+		if retErr != nil {
+			setVal(oldVal)
+		}
+	}(s.ctrs.Counter[handle])
+	setVal(val)
 
-	// Update in-memory representation.
-	if val == 0 {
-		delete(c.store, handle)
-	} else {
-		c.store[handle] = val
+	// Write to disk.
+	if err := s.write(); err != nil {
+		return fmt.Errorf("could not write U2F counters: %v", err)
+	}
+	return nil
+}
+
+func (s *Store) write() error {
+	if s.ctrFile == "" {
+		// In-memory only.
+		return nil
+	}
+
+	ctrBytes, err := proto.Marshal(s.ctrs)
+	if err != nil {
+		return fmt.Errorf("could not serialize U2F counters: %v", err)
+	}
+	tempFile, err := ioutil.TempFile(filepath.Dir(s.ctrFile), ".harp_u2fctr")
+	if err != nil {
+		return fmt.Errorf("could not create temporary file: %v", err)
+	}
+	tempFilename := tempFile.Name()
+	defer os.Remove(tempFilename)
+	defer tempFile.Close()
+	if _, err := tempFile.Write(ctrBytes); err != nil {
+		return fmt.Errorf("could not write U2F counter file: %v", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		return fmt.Errorf("could not close U2F counter file: %v", tempFile.Name(), err)
+	}
+	if err := os.Rename(tempFilename, s.ctrFile); err != nil {
+		return fmt.Errorf("could not rename U2F counter file: %v", err)
 	}
 	return nil
 }
