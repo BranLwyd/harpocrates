@@ -202,12 +202,18 @@ func (ph passwordHandler) serveDirectoryViewHTTP(w http.ResponseWriter, r *http.
 		}
 	}
 
-	if len(subdirs) == 0 && len(entries) == 0 {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	// If this directory is nonexistent, forward to the parent directory (assuming we aren't already at the root directory).
+	if dirPath != "/" && len(subdirs) == 0 && len(entries) == 0 {
+		// Call path.Dir twice: the first call just removes the trailing slash.
+		parentPath := path.Dir(path.Dir(dirPath))
+		if !strings.HasSuffix(parentPath, "/") {
+			parentPath = parentPath + "/"
+		}
+		http.Redirect(w, r, parentPath, http.StatusSeeOther)
 		return
 	}
 
-	// Render them.
+	// Render entries/subdirectories.
 	serveTemplate(w, r, dirViewTmpl, struct {
 		Path           string
 		Entries        []string

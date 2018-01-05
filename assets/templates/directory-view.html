@@ -13,14 +13,15 @@
 			</div>
 		</div>
 
-		<div class="inner-content">
+                <div class="inner-content">{{if and (not (parentDir .Path)) (not .Subdirectories) (not .Entries)}}
+                        No entries.{{else}}{{if or (parentDir .Path) .Subdirectories}}
 			<ul class="dir-list">{{if parentDir .Path}}
 				<li><a href="{{parentDir .Path}}">..</a></li>{{end}}{{range .Subdirectories}}
 				<li><a href="{{.}}/">{{name .}}</a></li>{{end}}
-			</ul>
+                        </ul>{{end}}{{if .Entries}}
 			<ul class="entry-list">{{range .Entries}}
 				<li><a href="{{.}}">{{name .}}</a></li>{{end}}
-			</ul>
+                        </ul>{{end}}{{end}}
 		</div>
 	</div>
 </body>
