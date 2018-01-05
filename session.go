@@ -276,7 +276,7 @@ func (s *Session) AuthenticateU2FResponse(path string, sr u2f.SignResponse) erro
 	return ErrU2FAuthenticationFailed
 }
 
-// GetRegistrations gets the set of registrations for U2F devices.
-func (s *Session) GetRegistrations() []u2f.Registration {
+// U2FRegistrations gets the set of registrations for U2F devices.
+func (s *Session) U2FRegistrations() []u2f.Registration {
 	return s.h.registrations
 }

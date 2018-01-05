@@ -152,13 +152,19 @@ func (lh authHandler) u2fPath(r *http.Request, sess *session.Session) (string, e
 func (lh authHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, authPath string) {
 	switch r.Method {
 	case http.MethodGet:
+		// If the user has no U2F device registrations, send them to where they can register a U2F device.
+		if len(sess.U2FRegistrations()) == 0 {
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
+			return
+		}
+
 		c, err := sess.GenerateU2FChallenge(authPath)
 		if err != nil {
 			log.Printf("Could not create U2F authentication challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		req := c.SignRequest(sess.GetRegistrations())
+		req := c.SignRequest(sess.U2FRegistrations())
 		reqBytes, err := json.Marshal(req)
 		if err != nil {
 			log.Printf("Could not marshal U2F authentication challenge: %v", err)

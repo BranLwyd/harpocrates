@@ -26,7 +26,7 @@ func newRegister() *registerHandler {
 func (rh registerHandler) authPath(r *http.Request) (string, error) {
 	// The registration page is available without U2F if there are
 	// no U2F registrations.
-	if len(sessionFrom(r).GetRegistrations()) == 0 {
+	if len(sessionFrom(r).U2FRegistrations()) == 0 {
 		return "", nil
 	}
 	return authAny, nil
@@ -48,7 +48,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		req := u2f.NewWebRegisterRequest(c, sess.GetRegistrations())
+		req := u2f.NewWebRegisterRequest(c, sess.U2FRegistrations())
 		reqBytes, err := json.Marshal(req)
 		if err != nil {
 			log.Printf("Could not marshal U2F registration challenge: %v", err)
