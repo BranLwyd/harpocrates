@@ -23,6 +23,7 @@ import (
 	"github.com/BranLwyd/harpocrates/server"
 	"github.com/golang/protobuf/proto"
 
+	cpb "github.com/BranLwyd/harpocrates/proto/config_proto"
 	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
 )
 
@@ -35,7 +36,7 @@ var (
 // serv implements server.Server.
 type serv struct{}
 
-func (serv) ParseConfig() (_ *server.Config, _ *pb.Key, _ *counter.Store, _ error) {
+func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) {
 	keyBytes := debug_assets.MustAsset(fmt.Sprintf("debug/key.%s", *encryption))
 	k := &pb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
@@ -58,17 +59,17 @@ func (serv) ParseConfig() (_ *server.Config, _ *pb.Key, _ *counter.Store, _ erro
 	} else {
 		log.Printf("No U2F registration specified. Navigate to https://%s:8080/register to register a token, then specify it via --u2f.", *hostname)
 	}
-	cfg := &server.Config{
-		HostName:            fmt.Sprintf("%s:8080", *hostname),
-		PassDir:             filepath.Join(passDir, fmt.Sprintf("debug/passwords.%s", *encryption)),
-		U2FRegistrations:    u2fRegs,
-		SessionDurationSecs: 300,
-		NewSessionRate:      1,
+	cfg := &cpb.Config{
+		HostName:         fmt.Sprintf("%s:8080", *hostname),
+		PassLoc:          filepath.Join(passDir, fmt.Sprintf("debug/passwords.%s", *encryption)),
+		U2FReg:           u2fRegs,
+		SessionDurationS: 300,
+		NewSessionRate:   1,
 	}
 	return cfg, k, cs, nil
 }
 
-func (serv) Serve(_ *server.Config, h http.Handler) error {
+func (serv) Serve(_ *cpb.Config, h http.Handler) error {
 	// Generate a self-signed certificate with the appropriate hostname.
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
