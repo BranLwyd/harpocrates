@@ -105,8 +105,8 @@ func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
 		TLSConfig: &tls.Config{
 			PreferServerCipherSuites: true,
 			CurvePreferences: []tls.CurveID{
-				tls.CurveP256,
 				tls.X25519,
+				tls.CurveP256,
 			},
 			MinVersion:             tls.VersionTLS12,
 			SessionTicketsDisabled: true,
