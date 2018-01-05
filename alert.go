@@ -14,16 +14,16 @@ import (
 type Code uint8
 
 const (
-	LOGIN                   Code = iota // A user has fully completed the authentication process.
-	TIMEOUT_UNAUTHENTICATED             // A user session has timed out after successfully starting but not fully completing the authentication process.
+	LOGIN                          Code = iota // A user has fully completed the authentication process.
+	UNAUTHENTICATED_SESSION_CLOSED             // A user session has been closed (e.g. timed out, manually logged out) after successfully starting but not fully completing the authentication process.
 )
 
 func (c Code) String() string {
 	switch c {
 	case LOGIN:
 		return "LOGIN"
-	case TIMEOUT_UNAUTHENTICATED:
-		return "TIMEOUT_UNAUTHENTICATED"
+	case UNAUTHENTICATED_SESSION_CLOSED:
+		return "UNAUTHENTICATED_SESSION_CLOSED"
 	default:
 		return "UNKNOWN"
 	}

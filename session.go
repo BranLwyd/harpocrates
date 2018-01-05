@@ -121,7 +121,7 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 		store:       store,
 		authedPaths: map[string]struct{}{},
 	}
-	sess.expirationTimer = time.AfterFunc(h.sessionDuration, func() { h.timeoutSession(sessID, sess) })
+	sess.expirationTimer = time.AfterFunc(h.sessionDuration, func() { h.closeSession(sessID) })
 	h.sessions[sessID] = sess
 	return sessID, sess, nil
 }
@@ -156,13 +156,10 @@ func (h *Handler) closeSession(sessID string) {
 	if sess := h.sessions[sessID]; sess != nil {
 		sess.expirationTimer.Stop()
 		delete(h.sessions, sessID)
-	}
-}
 
-func (h *Handler) timeoutSession(sessID string, sess *Session) {
-	h.closeSession(sessID)
-	if !sess.IsU2FAuthenticated() {
-		h.alert(alert.TIMEOUT_UNAUTHENTICATED, "Session timed out without completing U2F authentication.")
+		if !sess.IsU2FAuthenticated() {
+			h.alert(alert.UNAUTHENTICATED_SESSION_CLOSED, "Session closed without completing U2F authentication.")
+		}
 	}
 }
 
