@@ -23,8 +23,8 @@ import (
 	"github.com/BranLwyd/harpocrates/server"
 	"github.com/golang/protobuf/proto"
 
-	cpb "github.com/BranLwyd/harpocrates/proto/config_proto"
-	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
+	cpb "github.com/BranLwyd/harpocrates/proto/config_go_proto"
+	pb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
 )
 
 var (

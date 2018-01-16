@@ -7,7 +7,7 @@ import (
 
 	"github.com/BranLwyd/harpocrates/secret"
 
-	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
+	pb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
 )
 
 var (

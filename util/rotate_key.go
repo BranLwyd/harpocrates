@@ -12,7 +12,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/howeyc/gopass"
 
-	kpb "github.com/BranLwyd/harpocrates/proto/key_proto"
+	kpb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
 )
 
 var (

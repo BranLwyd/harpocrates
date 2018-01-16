@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 
-	pb "github.com/BranLwyd/harpocrates/proto/key_proto"
+	pb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
 )
 
 var (

@@ -18,8 +18,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/scrypt"
 
-	epb "github.com/BranLwyd/harpocrates/proto/entry_proto"
-	kpb "github.com/BranLwyd/harpocrates/proto/key_proto"
+	epb "github.com/BranLwyd/harpocrates/proto/entry_go_proto"
+	kpb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
 )
 
 func init() {

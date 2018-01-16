@@ -13,8 +13,8 @@ go_binary(
         ":counter",
         ":server",
         "//handler",
-        "//proto:config_proto",
-        "//proto:key_proto",
+        "//proto:config_go_proto",
+        "//proto:key_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@org_golang_x_crypto//acme/autocert:go_default_library",
     ],
@@ -29,8 +29,8 @@ go_binary(
         ":debug_assets",
         ":server",
         "//handler",
-        "//proto:config_proto",
-        "//proto:key_proto",
+        "//proto:config_go_proto",
+        "//proto:key_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )
@@ -47,7 +47,7 @@ go_library(
     name = "counter",
     srcs = ["counter.go"],
     deps = [
-        "//proto:counter_proto",
+        "//proto:counter_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )
@@ -66,8 +66,8 @@ go_library(
         ":counter",
         ":session",
         "//handler",
-        "//proto:config_proto",
-        "//proto:key_proto",
+        "//proto:config_go_proto",
+        "//proto:key_go_proto",
         "//secret:key",
     ],
 )

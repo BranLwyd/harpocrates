@@ -12,8 +12,8 @@ import (
 	"github.com/BranLwyd/harpocrates/secret/key"
 	"github.com/BranLwyd/harpocrates/session"
 
-	cpb "github.com/BranLwyd/harpocrates/proto/config_proto"
-	kpb "github.com/BranLwyd/harpocrates/proto/key_proto"
+	cpb "github.com/BranLwyd/harpocrates/proto/config_go_proto"
+	kpb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
 )
 
 // Server provides an interface to the functionality in a harpocrates server

@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	cpb "github.com/BranLwyd/harpocrates/proto/counter_proto"
+	cpb "github.com/BranLwyd/harpocrates/proto/counter_go_proto"
 )
 
 // Store stores a uint32 counter keyed by an opaque string, and serializes
