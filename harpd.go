@@ -125,8 +125,23 @@ func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
 		IdleTimeout:  120 * time.Second,
 		Handler:      handler.NewLogging("https", handler.NewSecureHeader(h)),
 	}
+
 	log.Printf("Serving")
+	// Serve HTTP redirects & ACME challenge traffic...
+	go serveHTTPRedirects(m.HTTPHandler(nil))
+
+	// ..and serve content on HTTPS.
 	return server.ListenAndServeTLS("", "")
+}
+
+func serveHTTPRedirects(h http.Handler) {
+	server := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      h,
+	}
+	log.Fatalf("ListenAndServe: %v", server.ListenAndServe())
 }
 
 func main() {
