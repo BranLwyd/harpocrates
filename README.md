@@ -3,7 +3,7 @@ a work in progress
 
 ```shell
 $ bazel build //:harpd_debug
-$ bazel build --experimental_platforms=@io_bazel_rules_go//go/toolchain:linux_arm //:harpd
+$ bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_arm //:harpd
 ```
 
 ## Acknowledgements/Attributions
