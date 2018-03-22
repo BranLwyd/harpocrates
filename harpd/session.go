@@ -13,9 +13,9 @@ import (
 
 	"github.com/tstranex/u2f"
 
-	"github.com/BranLwyd/harpocrates/alert"
-	"github.com/BranLwyd/harpocrates/counter"
-	"github.com/BranLwyd/harpocrates/rate"
+	"github.com/BranLwyd/harpocrates/harpd/alert"
+	"github.com/BranLwyd/harpocrates/harpd/counter"
+	"github.com/BranLwyd/harpocrates/harpd/rate"
 	"github.com/BranLwyd/harpocrates/secret"
 )
 

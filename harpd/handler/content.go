@@ -4,7 +4,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/BranLwyd/harpocrates/session"
+	"github.com/BranLwyd/harpocrates/harpd/session"
 )
 
 var (

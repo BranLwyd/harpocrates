@@ -10,14 +10,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/BranLwyd/harpocrates/counter"
-	"github.com/BranLwyd/harpocrates/handler"
-	"github.com/BranLwyd/harpocrates/server"
+	"github.com/BranLwyd/harpocrates/harpd/counter"
+	"github.com/BranLwyd/harpocrates/harpd/handler"
+	"github.com/BranLwyd/harpocrates/harpd/server"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/acme/autocert"
 
-	cpb "github.com/BranLwyd/harpocrates/proto/config_go_proto"
-	kpb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
+	cpb "github.com/BranLwyd/harpocrates/harpd/proto/config_go_proto"
+	kpb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
 
 var (

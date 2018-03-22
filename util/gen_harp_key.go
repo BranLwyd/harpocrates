@@ -15,7 +15,7 @@ import (
 	"github.com/howeyc/gopass"
 	"golang.org/x/crypto/scrypt"
 
-	kpb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
+	kpb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
 
 var (

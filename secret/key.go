@@ -7,7 +7,7 @@ import (
 	"github.com/BranLwyd/harpocrates/secret/key_private"
 	_ "github.com/BranLwyd/harpocrates/secret/pgp"
 
-	pb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
+	pb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
 
 // NewVault creates a new vault from the given key, reading encrypted data from

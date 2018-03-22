@@ -13,9 +13,9 @@ import (
 
 	"mvdan.cc/xurls"
 
-	"github.com/BranLwyd/harpocrates/assets"
+	"github.com/BranLwyd/harpocrates/harpd/assets"
+	"github.com/BranLwyd/harpocrates/harpd/session"
 	"github.com/BranLwyd/harpocrates/secret"
-	"github.com/BranLwyd/harpocrates/session"
 )
 
 var (

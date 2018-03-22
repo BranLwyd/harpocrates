@@ -2,8 +2,8 @@
 a work in progress
 
 ```shell
-$ bazel build //:harpd_debug
-$ bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_arm //:harpd
+$ bazel build //harpd:harpd_debug
+$ bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_arm //harpd
 ```
 
 ## Acknowledgements/Attributions

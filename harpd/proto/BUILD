@@ -11,7 +11,7 @@ proto_library(
 go_proto_library(
     name = "config_go_proto",
     proto = ":config_proto",
-    visibility = ["//visibility:public"],
+    visibility = ["//harpd:__pkg__"],
 )
 
 proto_library(
@@ -22,27 +22,5 @@ proto_library(
 go_proto_library(
     name = "counter_go_proto",
     proto = ":counter_proto",
-    visibility = ["//visibility:public"],
-)
-
-proto_library(
-    name = "entry_proto",
-    srcs = ["entry.proto"],
-)
-
-go_proto_library(
-    name = "entry_go_proto",
-    proto = ":entry_proto",
-    visibility = ["//visibility:public"],
-)
-
-proto_library(
-    name = "key_proto",
-    srcs = ["key.proto"],
-)
-
-go_proto_library(
-    name = "key_go_proto",
-    proto = ":key_proto",
-    visibility = ["//visibility:public"],
+    visibility = ["//harpd:__pkg__"],
 )

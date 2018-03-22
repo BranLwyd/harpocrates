@@ -10,7 +10,7 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/search"
 
-	"github.com/BranLwyd/harpocrates/assets"
+	"github.com/BranLwyd/harpocrates/harpd/assets"
 )
 
 var (

@@ -9,8 +9,8 @@ import (
 
 	"github.com/tstranex/u2f"
 
-	"github.com/BranLwyd/harpocrates/assets"
-	"github.com/BranLwyd/harpocrates/session"
+	"github.com/BranLwyd/harpocrates/harpd/assets"
+	"github.com/BranLwyd/harpocrates/harpd/session"
 )
 
 var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(assets.MustAsset("templates/u2f-register.html"))))

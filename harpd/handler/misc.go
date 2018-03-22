@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BranLwyd/harpocrates/assets"
+	"github.com/BranLwyd/harpocrates/harpd/assets"
 )
 
 func serveTemplate(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data interface{}) {

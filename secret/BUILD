@@ -27,8 +27,8 @@ go_library(
         ":file",
         ":key_private",
         ":secret",
-        "//proto:entry_go_proto",
-        "//proto:key_go_proto",
+        "//secret/proto:entry_go_proto",
+        "//secret/proto:key_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@org_golang_x_crypto//scrypt:go_default_library",
     ],
@@ -43,7 +43,7 @@ go_library(
         ":key_private",
         ":pgp",
         ":secret",
-        "//proto:key_go_proto",
+        "//secret/proto:key_go_proto",
     ],
 )
 
@@ -52,7 +52,7 @@ go_library(
     srcs = ["key_private.go"],
     deps = [
         ":secret",
-        "//proto:key_go_proto",
+        "//secret/proto:key_go_proto",
     ],
 )
 
@@ -63,7 +63,7 @@ go_library(
         ":file",
         ":key_private",
         ":secret",
-        "//proto:key_go_proto",
+        "//secret/proto:key_go_proto",
         "@org_golang_x_crypto//openpgp:go_default_library",
         "@org_golang_x_crypto//openpgp/packet:go_default_library",
         "@org_golang_x_crypto//ripemd160:go_default_library",

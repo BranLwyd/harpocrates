@@ -19,7 +19,7 @@ import (
 	"golang.org/x/crypto/openpgp/packet"
 	_ "golang.org/x/crypto/ripemd160"
 
-	pb "github.com/BranLwyd/harpocrates/proto/key_go_proto"
+	pb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
 
 func init() {

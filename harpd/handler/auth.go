@@ -11,10 +11,10 @@ import (
 
 	"github.com/tstranex/u2f"
 
-	"github.com/BranLwyd/harpocrates/assets"
-	"github.com/BranLwyd/harpocrates/rate"
+	"github.com/BranLwyd/harpocrates/harpd/assets"
+	"github.com/BranLwyd/harpocrates/harpd/rate"
+	"github.com/BranLwyd/harpocrates/harpd/session"
 	"github.com/BranLwyd/harpocrates/secret"
-	"github.com/BranLwyd/harpocrates/session"
 )
 
 type sessionContextKey struct{}
