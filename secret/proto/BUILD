@@ -1,7 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_prefix")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
-
-go_prefix("github.com/BranLwyd/harpocrates")
 
 proto_library(
     name = "entry_proto",

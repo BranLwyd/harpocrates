@@ -1,6 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_prefix", "go_binary", "go_library")
-
-go_prefix("github.com/BranLwyd/harpocrates")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 ##
 ## Binaries
