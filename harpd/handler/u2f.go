@@ -76,7 +76,7 @@ func (rh registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		reg, err := u2f.Register(resp, *c, nil)
+		reg, err := u2f.Register(resp, *c, &u2f.Config{SkipAttestationVerify: true})
 		if err != nil {
 			log.Printf("Could not complete U2F registration: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

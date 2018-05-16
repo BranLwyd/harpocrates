@@ -30,7 +30,7 @@ go_repository(
 
 go_repository(
     name = "com_github_tstranex_u2f",
-    commit = "c46b9c6b15141e1c75d096258e560996b68ef8cb",
+    commit = "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
     importpath = "github.com/tstranex/u2f",
 )
 
