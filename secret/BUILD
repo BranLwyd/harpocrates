@@ -6,6 +6,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "file",
     srcs = ["file.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret/file",
     deps = [
         ":secret",
     ],
@@ -21,6 +22,7 @@ go_test(
 go_library(
     name = "harp",
     srcs = ["harp.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret/harp",
     deps = [
         ":file",
         ":key_private",
@@ -35,6 +37,7 @@ go_library(
 go_library(
     name = "key",
     srcs = ["key.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret/key",
     visibility = ["//visibility:public"],
     deps = [
         ":harp",
@@ -57,6 +60,7 @@ go_library(
 go_library(
     name = "pgp",
     srcs = ["pgp.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret/pgp",
     deps = [
         ":file",
         ":key_private",
@@ -71,5 +75,6 @@ go_library(
 go_library(
     name = "secret",
     srcs = ["secret.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret",
     visibility = ["//visibility:public"],
 )

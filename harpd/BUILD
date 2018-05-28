@@ -39,11 +39,13 @@ go_binary(
 go_library(
     name = "alert",
     srcs = ["alert.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/alert",
 )
 
 go_library(
     name = "counter",
     srcs = ["counter.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/counter",
     deps = [
         "//harpd/proto:counter_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
@@ -53,12 +55,14 @@ go_library(
 go_library(
     name = "rate",
     srcs = ["rate.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/rate",
     visibility = ["//harpd/handler:__pkg__"],
 )
 
 go_library(
     name = "server",
     srcs = ["server.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/server",
     deps = [
         ":alert",
         ":counter",
@@ -73,6 +77,7 @@ go_library(
 go_library(
     name = "session",
     srcs = ["session.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/session",
     visibility = ["//harpd/handler:__pkg__"],
     deps = [
         ":alert",
@@ -105,6 +110,7 @@ genrule(
 go_library(
     name = "assets",
     srcs = ["assets.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/assets",
     visibility = ["//harpd/handler:__pkg__"],
 )
 
@@ -124,4 +130,5 @@ genrule(
 go_library(
     name = "debug_assets",
     srcs = ["debug_assets.go"],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/debug_assets",
 )

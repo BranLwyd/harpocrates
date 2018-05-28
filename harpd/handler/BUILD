@@ -22,4 +22,5 @@ go_library(
         "@org_golang_x_text//language:go_default_library",
         "@org_golang_x_text//search:go_default_library",
     ],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/handler",
 )
