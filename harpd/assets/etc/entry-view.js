@@ -30,4 +30,26 @@ window.onload = function() {
     editLink.onclick = null;
     return false;
   }
+
+  var copyLink = document.getElementById("copy-password")
+  copyLink.onclick = function() {
+    var el = document.getElementById("passdata")
+    var password = el.getAttribute("data-password")
+    navigator.clipboard.writeText(password)
+      .catch(err => {
+        console.error('Failed to write clipboard contents: ', err);
+      });
+    return false;
+  }
+
+  var showLink = document.getElementById("show-password")
+  showLink.onclick = function() {
+    // This removes the controls, so user can't click this twice.
+    document.getElementById("pass-controls").remove();
+	  
+    var el = document.getElementById("passdata")
+    var password = el.getAttribute("data-password")
+    el.innerText = password + el.innerText;
+    return false;
+  }
 }

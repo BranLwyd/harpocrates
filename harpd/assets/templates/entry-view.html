@@ -15,7 +15,8 @@
 		</div>
 
 		<div class="inner-content">
-			<div id="content-view" class="content-view">{{if .Content}}<pre id="passdata">{{linkify .Content}}</pre>{{else}}No entry for {{name .Path}}.{{end}}</div>
+			<div id="content-view" class="content-view">{{if .Content}}<pre id="passdata" data-password="{{firstLine .Content}}"><span id="pass-controls"><a id="copy-password" href><span class="fa">&#xf0ea;</span> Copy Password</a> | <a id="show-password" href><span class="fa">&#xf06e;</span> Show Password</a></span>
+{{restLines .Content | linkify}}</pre>{{else}}No entry for {{name .Path}}.{{end}}</div>
 
 			<form method="POST" id="content-edit" class="content-edit">
 				<div><textarea id="content-edit-content" name="content">{{.Content}}</textarea></div>

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"regexp"
 	"strings"
 
 	"mvdan.cc/xurls"
@@ -19,7 +20,8 @@ import (
 )
 
 var (
-	urlRe = xurls.Strict()
+	urlRe  = xurls.Strict()
+	lineRe = regexp.MustCompile("^(?s)([^\r\n]*)(?:\r?\n(.*))?$") // two capture groups: first is first line, second is remainder (linebreak between first line & remainder is dropped)
 
 	entryTmplFuncs = map[string]interface{}{
 		"name": path.Base,
@@ -55,6 +57,8 @@ var (
 			}
 			return template.HTML(buf.String()), nil
 		},
+		"firstLine": func(x string) string { return lineRe.FindStringSubmatch(x)[1] },
+		"restLines": func(x string) string { return lineRe.FindStringSubmatch(x)[2] },
 		"parentDir": func(dirPath string) string {
 			if dirPath == "/" {
 				return ""
