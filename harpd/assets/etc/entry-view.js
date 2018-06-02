@@ -44,12 +44,9 @@ window.onload = function() {
 
   var showLink = document.getElementById("show-password")
   showLink.onclick = function() {
+    var password = document.getElementById("passdata").getAttribute("data-password")
     // This removes the controls, so user can't click this twice.
-    document.getElementById("pass-controls").remove();
-	  
-    var el = document.getElementById("passdata")
-    var password = el.getAttribute("data-password")
-    el.innerText = password + el.innerText;
+    document.getElementById("pass-controls").innerText = password;
     return false;
   }
 }
