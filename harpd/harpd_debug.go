@@ -30,7 +30,7 @@ import (
 var (
 	u2f        = flag.String("u2f", "", "If specified, the U2F key to use.")
 	hostname   = flag.String("hostname", "", "The hostname to serve with. Defaults to os.Hostname().")
-	encryption = flag.String("encryption", "harp", "The type of encryption to use. Valid options include `harp` and `pgp`.")
+	encryption = flag.String("encryption", "sbox", "The type of encryption to use. Valid options include `sbox` and `pgp`.")
 )
 
 // serv implements server.Server.

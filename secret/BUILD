@@ -44,6 +44,7 @@ go_library(
         ":key_private",
         ":pgp",
         ":secret",
+        ":secretbox",
         "//secret/proto:key_go_proto",
     ],
 )
@@ -77,4 +78,20 @@ go_library(
     srcs = ["secret.go"],
     importpath = "github.com/BranLwyd/harpocrates/secret",
     visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "secretbox",
+    srcs = ["secretbox.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret/secretbox",
+    deps = [
+        ":file",
+        ":key_private",
+        ":secret",
+        "//secret/proto:entry_go_proto",
+        "//secret/proto:key_go_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@org_golang_x_crypto//nacl/secretbox:go_default_library",
+        "@org_golang_x_crypto//scrypt:go_default_library",
+    ],
 )

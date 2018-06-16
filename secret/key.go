@@ -6,6 +6,7 @@ import (
 	_ "github.com/BranLwyd/harpocrates/secret/harp"
 	"github.com/BranLwyd/harpocrates/secret/key_private"
 	_ "github.com/BranLwyd/harpocrates/secret/pgp"
+	_ "github.com/BranLwyd/harpocrates/secret/secretbox"
 
 	pb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
