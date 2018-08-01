@@ -8,6 +8,7 @@ proto_library(
 go_proto_library(
     name = "entry_go_proto",
     proto = ":entry_proto",
+    importpath = "github.com/BranLwyd/harpocrates/secret/proto/entry_go_proto",
     visibility = ["//secret:__pkg__"],
 )
 
@@ -19,5 +20,6 @@ proto_library(
 go_proto_library(
     name = "key_go_proto",
     proto = ":key_proto",
+    importpath = "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto",
     visibility = ["//visibility:public"],
 )

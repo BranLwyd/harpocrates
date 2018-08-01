@@ -52,6 +52,7 @@ go_library(
 go_library(
     name = "key_private",
     srcs = ["key_private.go"],
+    importpath = "github.com/BranLwyd/harpocrates/secret/key_private",
     deps = [
         ":secret",
         "//secret/proto:key_go_proto",
