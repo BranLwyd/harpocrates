@@ -14,6 +14,7 @@ import (
 	"github.com/BranLwyd/harpocrates/harpd/handler"
 	"github.com/BranLwyd/harpocrates/harpd/server"
 	"github.com/golang/protobuf/proto"
+	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 
 	cpb "github.com/BranLwyd/harpocrates/harpd/proto/config_go_proto"
@@ -119,6 +120,7 @@ func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
 				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			},
 			GetCertificate: m.GetCertificate,
+			NextProtos:     []string{"h2", acme.ALPNProto},
 		},
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -127,21 +129,7 @@ func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
 	}
 
 	log.Printf("Serving")
-	// Serve HTTP redirects & ACME challenge traffic...
-	go serveHTTPRedirects(m.HTTPHandler(nil))
-
-	// ..and serve content on HTTPS.
 	return server.ListenAndServeTLS("", "")
-}
-
-func serveHTTPRedirects(h http.Handler) {
-	server := &http.Server{
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      h,
-	}
-	log.Fatalf("ListenAndServe: %v", server.ListenAndServe())
 }
 
 func main() {
