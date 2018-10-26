@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 	"mvdan.cc/xurls"
 
 	"github.com/BranLwyd/harpocrates/harpd/assets"
@@ -205,6 +207,8 @@ func (ph passwordHandler) serveDirectoryViewHTTP(w http.ResponseWriter, r *http.
 			}
 		}
 	}
+	collate.New(language.English, collate.IgnoreCase).SortStrings(entries)
+	collate.New(language.English, collate.IgnoreCase).SortStrings(subdirs)
 
 	// If this directory is nonexistent, forward to the parent directory (assuming we aren't already at the root directory).
 	if dirPath != "/" && len(subdirs) == 0 && len(entries) == 0 {

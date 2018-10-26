@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 	"golang.org/x/text/search"
 
@@ -88,5 +89,6 @@ func performSearch(r *http.Request) ([]string, error) {
 			matches = append(matches, e)
 		}
 	}
+	collate.New(language.English, collate.IgnoreCase).SortStrings(matches)
 	return matches, nil
 }
