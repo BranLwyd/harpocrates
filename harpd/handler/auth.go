@@ -197,20 +197,14 @@ func (lh authHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess 
 }
 
 func addSessionIDToRequest(w http.ResponseWriter, sid string) {
-	encodedSID := base64.RawURLEncoding.EncodeToString([]byte(sid))
-	c := &http.Cookie{
+	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
-		Value:    encodedSID,
+		Value:    base64.RawURLEncoding.EncodeToString([]byte(sid)),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-	}
-
-	// Hack: add SameSite attribute to cookie, not yet officially supported by Go (https://github.com/golang/go/issues/15867)
-	// TODO: once Go supports SameSite, go back to using http.SetCookie()
-	if v := c.String(); v != "" {
-		w.Header().Add("Set-Cookie", v+"; SameSite=strict")
-	}
+		SameSite: http.SameSiteStrictMode,
+	})
 }
 
 func sessionIDFromRequest(r *http.Request) (string, error) {
