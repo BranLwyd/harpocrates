@@ -11,6 +11,7 @@ go_library(
         "search.go",
         "u2f.go",
     ],
+    importpath = "github.com/BranLwyd/harpocrates/harpd/handler",
     visibility = ["//harpd:__pkg__"],
     deps = [
         "//harpd:assets",
@@ -23,5 +24,4 @@ go_library(
         "@org_golang_x_text//language:go_default_library",
         "@org_golang_x_text//search:go_default_library",
     ],
-    importpath = "github.com/BranLwyd/harpocrates/harpd/handler",
 )

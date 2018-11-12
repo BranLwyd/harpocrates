@@ -8,14 +8,14 @@ import (
 )
 
 var (
-	contentStyleHandler           = must(newCacheableAsset("etc/style.css", "text/css; charset=utf-8"))
-	contentRobotsHandler          = must(newCacheableAsset("etc/robots.txt", "text/plain; charset=utf-8"))
-	contentFaviconHandler         = must(newCacheableAsset("etc/favicon.ico", "image/x-icon"))
-	contentU2FAPIHandler          = must(newCacheableAsset("etc/u2f-api.js", "application/javascript"))
-	contentU2FAuthenticateHandler = must(newCacheableAsset("etc/u2f-authenticate.js", "application/javascript"))
-	contentU2FRegisterHandler     = must(newCacheableAsset("etc/u2f-register.js", "application/javascript"))
-	contentEntryViewHandler       = must(newCacheableAsset("etc/entry-view.js", "application/javascript"))
-	contentFontAwesomeHandler     = must(newCacheableAsset("etc/font-awesome.otf", "application/font-sfnt"))
+	contentStyleHandler           = must(newCacheableAsset("harpd/assets/etc/style.css", "text/css; charset=utf-8"))
+	contentRobotsHandler          = must(newCacheableAsset("harpd/assets/etc/robots.txt", "text/plain; charset=utf-8"))
+	contentFaviconHandler         = must(newCacheableAsset("harpd/assets/etc/favicon.ico", "image/x-icon"))
+	contentU2FAPIHandler          = must(newCacheableAsset("harpd/assets/etc/u2f-api.js", "application/javascript"))
+	contentU2FAuthenticateHandler = must(newCacheableAsset("harpd/assets/etc/u2f-authenticate.js", "application/javascript"))
+	contentU2FRegisterHandler     = must(newCacheableAsset("harpd/assets/etc/u2f-register.js", "application/javascript"))
+	contentEntryViewHandler       = must(newCacheableAsset("harpd/assets/etc/entry-view.js", "application/javascript"))
+	contentFontAwesomeHandler     = must(newCacheableAsset("harpd/assets/etc/font-awesome.otf", "application/font-sfnt"))
 )
 
 func NewContent(sh *session.Handler) http.Handler {

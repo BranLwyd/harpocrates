@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	loginPasswordHandler = must(newAsset("pages/login-password.html", "text/html; charset=utf-8"))
-	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(assets.MustAsset("templates/u2f-authenticate.html"))))
+	loginPasswordHandler = must(newAsset("harpd/assets/pages/login-password.html", "text/html; charset=utf-8"))
+	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(assets.MustAsset("harpd/assets/templates/u2f-authenticate.html"))))
 )
 
 // authHandler handles getting an authenticated session for the user session.

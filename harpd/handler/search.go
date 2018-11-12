@@ -17,7 +17,7 @@ import (
 var (
 	searchTmpl = template.Must(template.New("search").Funcs(map[string]interface{}{
 		"relative": func(entryPath string) string { return strings.TrimPrefix(entryPath, "/") },
-	}).Parse(string(assets.MustAsset("templates/search.html"))))
+	}).Parse(string(assets.MustAsset("harpd/assets/templates/search.html"))))
 )
 
 // searchHandler handles searching & the search UI.

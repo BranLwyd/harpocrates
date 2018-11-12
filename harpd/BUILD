@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_embed_data")
 
 ##
 ## Binaries
@@ -92,44 +92,35 @@ go_library(
 ##
 ## Static assets
 ##
-filegroup(
-    name = "assets_files",
+go_embed_data(
+    name = "embed_assets",
     srcs = glob(
         ["assets/**/*"],
         exclude = ["assets/debug/**/*"],
     ),
-)
-
-genrule(
-    name = "assets_go",
-    srcs = [":assets_files"],
-    outs = ["assets.go"],
-    cmd = "$(location @com_github_jteeuwen_go-bindata//go-bindata) -o $@ --nomemcopy --nocompress --pkg=assets --prefix=harpd/assets/ $(locations :assets_files)",
-    tools = ["@com_github_jteeuwen_go-bindata//go-bindata"],
+    package = "assets",
+    var = "Asset",
 )
 
 go_library(
     name = "assets",
-    srcs = ["assets.go"],
+    srcs = [
+        "assets.go",
+        ":embed_assets",
+    ],
     importpath = "github.com/BranLwyd/harpocrates/harpd/assets",
     visibility = ["//harpd/handler:__pkg__"],
 )
 
-filegroup(
-    name = "debug_assets_files",
+go_embed_data(
+    name = "embed_debug_assets",
     srcs = glob(["assets/debug/**/*"]),
-)
-
-genrule(
-    name = "debug_assets_go",
-    srcs = [":debug_assets_files"],
-    outs = ["debug_assets.go"],
-    cmd = "$(location @com_github_jteeuwen_go-bindata//go-bindata) -o $@ --nomemcopy --nocompress --pkg=debug_assets --prefix=harpd/assets/ $(locations :debug_assets_files)",
-    tools = ["@com_github_jteeuwen_go-bindata//go-bindata"],
+    package = "debug_assets",
+    var = "Asset",
 )
 
 go_library(
     name = "debug_assets",
-    srcs = ["debug_assets.go"],
+    srcs = [":embed_debug_assets"],
     importpath = "github.com/BranLwyd/harpocrates/harpd/debug_assets",
 )

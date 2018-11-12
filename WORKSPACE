@@ -34,12 +34,6 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_jteeuwen_go-bindata",
-    commit = "a0ff2567cfb70903282db057e799fd826784d41d",
-    importpath = "github.com/jteeuwen/go-bindata",
-)
-
-go_repository(
     name = "com_github_tstranex_u2f",
     commit = "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
     importpath = "github.com/tstranex/u2f",

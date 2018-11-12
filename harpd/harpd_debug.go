@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/BranLwyd/harpocrates/harpd/counter"
@@ -37,7 +38,7 @@ var (
 type serv struct{}
 
 func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) {
-	keyBytes := debug_assets.MustAsset(fmt.Sprintf("debug/key.%s", *encryption))
+	keyBytes := mustAsset(fmt.Sprintf("harpd/assets/debug/key.%s", *encryption))
 	k := &pb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
 		return nil, nil, nil, fmt.Errorf("could not parse key: %v", err)
@@ -50,7 +51,7 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) 
 		return nil, nil, nil, fmt.Errorf("could not create temporary directory: %v", err)
 	}
 	log.Printf("Debug mode: serving passwords from %q", passDir)
-	if err := debug_assets.RestoreAssets(passDir, fmt.Sprintf("debug/passwords.%s", *encryption)); err != nil {
+	if err := restoreAssets(passDir, fmt.Sprintf("harpd/assets/debug/passwords.%s", *encryption)); err != nil {
 		return nil, nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
 	}
 	var u2fRegs []string
@@ -61,7 +62,7 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) 
 	}
 	cfg := &cpb.Config{
 		HostName:         fmt.Sprintf("%s:8080", *hostname),
-		PassLoc:          filepath.Join(passDir, fmt.Sprintf("debug/passwords.%s", *encryption)),
+		PassLoc:          filepath.Join(passDir, fmt.Sprintf("harpd/assets/debug/passwords.%s", *encryption)),
 		U2FReg:           u2fRegs,
 		SessionDurationS: 300,
 		NewSessionRate:   1,
@@ -116,6 +117,31 @@ func (serv) Serve(_ *cpb.Config, h http.Handler) error {
 	}
 	log.Printf(`Serving debug on https://%s:8080 [the password is "password"]`, *hostname)
 	return server.ListenAndServeTLS("", "")
+}
+
+func mustAsset(name string) []byte {
+	a, ok := debug_assets.Asset[name]
+	if !ok {
+		panic(fmt.Sprintf("Debug asset %q does not exist", name))
+	}
+	return a
+}
+
+func restoreAssets(dst, src string) error {
+	for name, val := range debug_assets.Asset {
+		if !strings.HasPrefix(name, src) {
+			continue
+		}
+		fn := filepath.Join(dst, name)
+		pth := filepath.Dir(fn)
+		if err := os.MkdirAll(pth, 0755); err != nil {
+			return fmt.Errorf("could not create %q: %v", pth, err)
+		}
+		if err := ioutil.WriteFile(fn, val, 0644); err != nil {
+			return fmt.Errorf("could not write %q: %v", fn, err)
+		}
+	}
+	return nil
 }
 
 func main() {

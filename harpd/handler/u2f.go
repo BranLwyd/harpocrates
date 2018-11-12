@@ -13,7 +13,7 @@ import (
 	"github.com/BranLwyd/harpocrates/harpd/session"
 )
 
-var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(assets.MustAsset("templates/u2f-register.html"))))
+var u2fRegisterTmpl = template.Must(template.New("u2f-register").Parse(string(assets.MustAsset("harpd/assets/templates/u2f-register.html"))))
 
 // registerHandler handles registering a new U2F token.
 // It assumes it can get an authenticated session from the request.

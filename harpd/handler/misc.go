@@ -2,12 +2,15 @@ package handler
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/BranLwyd/harpocrates/harpd/assets"
@@ -34,43 +37,56 @@ func must(h http.Handler, err error) http.Handler {
 type staticHandler struct {
 	content     []byte
 	contentType string
-	modTime     time.Time
 }
 
-func newStatic(content []byte, contentType string) *staticHandler {
-	return &staticHandler{
+func newStatic(content []byte, contentType string) staticHandler {
+	return staticHandler{
 		content:     content,
 		contentType: contentType,
 	}
 }
 
-func newAsset(name, contentType string) (*staticHandler, error) {
-	asset, err := assets.Asset(name)
-	if err != nil {
-		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
+func newAsset(name, contentType string) (staticHandler, error) {
+	asset, ok := assets.Asset[name]
+	if !ok {
+		return staticHandler{}, fmt.Errorf("no such asset %q", name)
 	}
 	return newStatic(asset, contentType), nil
 }
 
-func newCacheableAsset(name, contentType string) (*staticHandler, error) {
-	asset, err := assets.Asset(name)
-	if err != nil {
-		return nil, fmt.Errorf("could not get asset %q: %v", name, err)
-	}
-	fi, err := assets.AssetInfo(name)
-	if err != nil {
-		return nil, fmt.Errorf("could not get asset %q info: %v", name, err)
-	}
-	return &staticHandler{
-		content:     asset,
-		contentType: contentType,
-		modTime:     fi.ModTime(),
-	}, nil
-}
-
 func (sh staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", sh.contentType)
-	http.ServeContent(w, r, "", sh.modTime, bytes.NewReader(sh.content))
+	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(sh.content))
+}
+
+type cacheableStaticHandler struct {
+	sh staticHandler
+
+	tagOnce sync.Once
+	tag     string
+}
+
+func newCacheableAsset(name, contentType string) (*cacheableStaticHandler, error) {
+	sh, err := newAsset(name, contentType)
+	if err != nil {
+		return nil, err
+	}
+	csh := &cacheableStaticHandler{sh: sh}
+	go csh.etag() // eagerly compute etag so that it will probably be available by the first request
+	return csh, nil
+}
+
+func (csh cacheableStaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("ETag", csh.etag())
+	csh.sh.ServeHTTP(w, r)
+}
+
+func (csh cacheableStaticHandler) etag() string {
+	csh.tagOnce.Do(func() {
+		h := sha256.Sum256(csh.sh.content)
+		csh.tag = fmt.Sprintf(`"%s"`, base64.RawURLEncoding.EncodeToString(h[:]))
+	})
+	return csh.tag
 }
 
 // secureHeaderHandler adds a few security-oriented headers.

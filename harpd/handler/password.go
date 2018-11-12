@@ -75,8 +75,8 @@ var (
 		},
 	}
 
-	entryViewTmpl = template.Must(template.New("entry-view").Funcs(entryTmplFuncs).Parse(string(assets.MustAsset("templates/entry-view.html"))))
-	dirViewTmpl   = template.Must(template.New("directory-view").Funcs(entryTmplFuncs).Parse(string(assets.MustAsset("templates/directory-view.html"))))
+	entryViewTmpl = template.Must(template.New("entry-view").Funcs(entryTmplFuncs).Parse(string(assets.MustAsset("harpd/assets/templates/entry-view.html"))))
+	dirViewTmpl   = template.Must(template.New("directory-view").Funcs(entryTmplFuncs).Parse(string(assets.MustAsset("harpd/assets/templates/directory-view.html"))))
 )
 
 // passwordHandler handles all password content (i.e. the main UI).
