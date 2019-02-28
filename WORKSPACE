@@ -2,17 +2,17 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "f87fa87475ea107b3c69196f39c82b7bbf58fe27c62a338684c20ca17d1d8613",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.16.2/rules_go-0.16.2.tar.gz",
+    sha256 = "6776d68ebb897625dead17ae510eac3d5f6342367327875210df44dbe2aeeb19",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.17.1/rules_go-0.17.1.tar.gz"],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "c0a5739d12c6d05b6c1ad56f2200cb0b57c5a70e03ebd2f7b87ce88cabf09c7b",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.14.0/bazel-gazelle-0.14.0.tar.gz"],
+    sha256 = "3c681998538231a2d24d0c07ed5a7658cb72bfb5fd4bf9911157c0e9ac6a2687",
+    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.17.0/bazel-gazelle-0.17.0.tar.gz"],
 )
 
-load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains")
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 go_rules_dependencies()
@@ -23,7 +23,7 @@ gazelle_dependencies()
 
 go_repository(
     name = "cc_mvdan_xurls",
-    commit = "284d56d6f9b9a86a9d5dcf57ec1340731a356d1b",
+    commit = "48f3ccc8a4d8cf06eb160dab0617e89b669635f7",
     importpath = "mvdan.cc/xurls",
 )
 
@@ -41,18 +41,18 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_crypto",
-    commit = "c126467f60eb25f8f27e5a981f32a87e3965053f",
+    commit = "31a38585487a4b1fd6ff4f8f3db26f1fb296ac82",
     importpath = "golang.org/x/crypto",
 )
 
 go_repository(
     name = "org_golang_x_text",
-    commit = "75cc3cad82b5f47d3fb229ddda8c5167da14f294",
+    commit = "d14c52b222ee852cdba8b07206ca0c614b389876",
     importpath = "golang.org/x/text",
 )
 
 go_repository(
     name = "org_golang_x_sys",
-    commit = "d5840adf789d732bc8b00f37b26ca956a7cc8e79",
+    commit = "775f8194d0f9e65c46913c7be783d3d95a29333c",
     importpath = "golang.org/x/sys",
 )
