@@ -52,3 +52,13 @@ go_binary(
         "@com_github_howeyc_gopass//:go_default_library",
     ],
 )
+
+go_binary(
+    name = "describe_key",
+    srcs = ["describe_key.go"],
+    pure = "on",
+    deps = [
+        "//secret/proto:key_go_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+    ],
+)
