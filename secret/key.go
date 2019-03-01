@@ -3,7 +3,6 @@ package key
 
 import (
 	"github.com/BranLwyd/harpocrates/secret"
-	_ "github.com/BranLwyd/harpocrates/secret/harp"
 	"github.com/BranLwyd/harpocrates/secret/key_private"
 	_ "github.com/BranLwyd/harpocrates/secret/pgp"
 	_ "github.com/BranLwyd/harpocrates/secret/secretbox"

@@ -54,9 +54,6 @@ func describeKey(kf string) {
 	case *kpb.Key_PgpKey:
 		fmt.Printf("%s: PGP key\n", kf)
 		// TODO: more detail?
-	case *kpb.Key_HarpKey:
-		fmt.Printf("%s: Harpocrates-native key\n", kf)
-		fmt.Printf("Parameters: N = %d, r = %d, p = %d\n", k.HarpKey.N, k.HarpKey.R, k.HarpKey.P)
 	case *kpb.Key_SecretboxKey:
 		fmt.Printf("%s: Secretbox key\n", kf)
 		fmt.Printf("Parameters: N = %d, r = %d, p = %d\n", k.SecretboxKey.N, k.SecretboxKey.R, k.SecretboxKey.P)

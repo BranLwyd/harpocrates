@@ -20,27 +20,11 @@ go_test(
 )
 
 go_library(
-    name = "harp",
-    srcs = ["harp.go"],
-    importpath = "github.com/BranLwyd/harpocrates/secret/harp",
-    deps = [
-        ":file",
-        ":key_private",
-        ":secret",
-        "//secret/proto:entry_go_proto",
-        "//secret/proto:key_go_proto",
-        "@com_github_golang_protobuf//proto:go_default_library",
-        "@org_golang_x_crypto//scrypt:go_default_library",
-    ],
-)
-
-go_library(
     name = "key",
     srcs = ["key.go"],
     importpath = "github.com/BranLwyd/harpocrates/secret/key",
     visibility = ["//visibility:public"],
     deps = [
-        ":harp",
         ":key_private",
         ":pgp",
         ":secret",
