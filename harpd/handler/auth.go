@@ -104,6 +104,7 @@ func (lh authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (lh authHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		w.Header().Add("Link", "</font-awesome.otf>; rel=prefetch")
 		loginPasswordHandler.ServeHTTP(w, r)
 
 	case http.MethodPost:
