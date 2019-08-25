@@ -2,18 +2,35 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "301c8b39b0808c49f98895faa6aa8c92cbd605ab5ad4b6a3a652da33a1a2ba2e",
-    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.18.0/rules_go-0.18.0.tar.gz"],
+    sha256 = "313f2c7a23fecc33023563f082f381a32b9b7254f727a7dd2d6380ccc6dfe09b",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.3/rules_go-0.19.3.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/0.19.3/rules_go-0.19.3.tar.gz",
+    ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "3c681998538231a2d24d0c07ed5a7658cb72bfb5fd4bf9911157c0e9ac6a2687",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.17.0/bazel-gazelle-0.17.0.tar.gz"],
+    sha256 = "7fc87f4170011201b1690326e8c16c5d802836e3a0d617d8f75c3af2b23180c4",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/0.18.2/bazel-gazelle-0.18.2.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.18.2/bazel-gazelle-0.18.2.tar.gz",
+    ],
 )
 
-load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
+http_archive(
+    name = "rules_proto",
+    sha256 = "602e7161d9195e50246177e7c55b2f39950a9cf7366f74ed5f22fd45750cd208",
+    strip_prefix = "rules_proto-97d8af4dc474595af3900dd85cb3a29ad28cc313",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_proto/archive/97d8af4dc474595af3900dd85cb3a29ad28cc313.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/97d8af4dc474595af3900dd85cb3a29ad28cc313.tar.gz",
+    ],
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 
 go_rules_dependencies()
 
@@ -21,9 +38,13 @@ go_register_toolchains()
 
 gazelle_dependencies()
 
+rules_proto_dependencies()
+
+rules_proto_toolchains()
+
 go_repository(
     name = "cc_mvdan_xurls",
-    commit = "48f3ccc8a4d8cf06eb160dab0617e89b669635f7",
+    commit = "633779b045185138a1a7c074417c2a61a92cf263",
     importpath = "mvdan.cc/xurls",
 )
 
@@ -41,18 +62,24 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_crypto",
-    commit = "31a38585487a4b1fd6ff4f8f3db26f1fb296ac82",
+    commit = "60c769a6c58655dab1b9adac0d58967dd517cfba",
     importpath = "golang.org/x/crypto",
 )
 
 go_repository(
+    name = "org_golang_x_net",
+    commit = "74dc4d7220e7acc4e100824340f3e66577424772",
+    importpath = "golang.org/x/net",
+)
+
+go_repository(
     name = "org_golang_x_text",
-    commit = "d14c52b222ee852cdba8b07206ca0c614b389876",
+    commit = "342b2e1fbaa52c93f31447ad2c6abc048c63e475",
     importpath = "golang.org/x/text",
 )
 
 go_repository(
     name = "org_golang_x_sys",
-    commit = "775f8194d0f9e65c46913c7be783d3d95a29333c",
+    commit = "fb81701db80f1745f51259b1f286de3fe2ec80c8",
     importpath = "golang.org/x/sys",
 )
