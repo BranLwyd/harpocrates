@@ -48,13 +48,6 @@ go_repository(
     importpath = "mvdan.cc/xurls",
 )
 
-# TODO: drop this dependency by switching to golang.org/x/crypto/ssh/terminal
-go_repository(
-    name = "com_github_howeyc_gopass",
-    commit = "7cb4b85ec19c7c220ab71433a230f7eb200d639d",
-    importpath = "github.com/howeyc/gopass",
-)
-
 go_repository(
     name = "com_github_tstranex_u2f",
     commit = "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",

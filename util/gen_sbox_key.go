@@ -10,9 +10,9 @@ import (
 	"os"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/howeyc/gopass"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
+	"golang.org/x/crypto/ssh/terminal"
 
 	kpb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
@@ -43,12 +43,14 @@ func main() {
 
 	// Get passphrase from user.
 	fmt.Printf("Passphrase: ")
-	passphrase, err := gopass.GetPasswd()
+	passphrase, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
 	if err != nil {
 		die("Could not get passphrase: %v", err)
 	}
 	fmt.Printf("Enter it again: ")
-	secondTry, err := gopass.GetPasswd()
+	secondTry, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
 	if err != nil {
 		die("Could not get passphrase: %v", err)
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/BranLwyd/harpocrates/secret"
 	"github.com/BranLwyd/harpocrates/secret/key"
 	"github.com/golang/protobuf/proto"
-	"github.com/howeyc/gopass"
+	"golang.org/x/crypto/ssh/terminal"
 
 	kpb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
 )
@@ -71,7 +71,8 @@ func main() {
 
 	// Unlock vaults.
 	fmt.Printf("Passphrase for `in` key: ")
-	inPass, err := gopass.GetPasswd()
+	inPass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
 	if err != nil {
 		die("Could not get passphrase: %v", err)
 	}
@@ -80,7 +81,8 @@ func main() {
 		die("Could not open `in` vault: %v", err)
 	}
 	fmt.Printf("Passphrase for `out` key: ")
-	outPass, err := gopass.GetPasswd()
+	outPass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
 	if err != nil {
 		die("Could not get passphrase: %v", err)
 	}

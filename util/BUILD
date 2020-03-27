@@ -22,9 +22,9 @@ go_binary(
     deps = [
         "//secret/proto:key_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
-        "@com_github_howeyc_gopass//:go_default_library",
         "@org_golang_x_crypto//nacl/secretbox:go_default_library",
         "@org_golang_x_crypto//scrypt:go_default_library",
+        "@org_golang_x_crypto//ssh/terminal:go_default_library",
     ],
 )
 
@@ -37,7 +37,7 @@ go_binary(
         "//secret:key",
         "//secret/proto:key_go_proto",
         "@com_github_golang_protobuf//proto:go_default_library",
-        "@com_github_howeyc_gopass//:go_default_library",
+        "@org_golang_x_crypto//ssh/terminal:go_default_library",
     ],
 )
 
