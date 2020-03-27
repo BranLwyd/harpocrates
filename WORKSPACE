@@ -2,19 +2,19 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "313f2c7a23fecc33023563f082f381a32b9b7254f727a7dd2d6380ccc6dfe09b",
+    sha256 = "142dd33e38b563605f0d20e89d9ef9eda0fc3cb539a14be1bdb1350de2eda659",
     urls = [
-        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.3/rules_go-0.19.3.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/0.19.3/rules_go-0.19.3.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.22.2/rules_go-v0.22.2.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.22.2/rules_go-v0.22.2.tar.gz",
     ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "7fc87f4170011201b1690326e8c16c5d802836e3a0d617d8f75c3af2b23180c4",
+    sha256 = "d8c45ee70ec39a57e7a05e5027c32b1576cc7f16d9dd37135b0eddde45cf1b10",
     urls = [
-        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/0.18.2/bazel-gazelle-0.18.2.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.18.2/bazel-gazelle-0.18.2.tar.gz",
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/v0.20.0/bazel-gazelle-v0.20.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.20.0/bazel-gazelle-v0.20.0.tar.gz",
     ],
 )
 
@@ -44,13 +44,14 @@ rules_proto_toolchains()
 
 go_repository(
     name = "cc_mvdan_xurls",
-    commit = "633779b045185138a1a7c074417c2a61a92cf263",
+    commit = "f1059c02e1c0424666bddb4ab2714d812d2dcdc4",
     importpath = "mvdan.cc/xurls",
 )
 
+# TODO: drop this dependency by switching to golang.org/x/crypto/ssh/terminal
 go_repository(
     name = "com_github_howeyc_gopass",
-    commit = "bf9dde6d0d2c004a008c27aaee91170c786f6db8",
+    commit = "7cb4b85ec19c7c220ab71433a230f7eb200d639d",
     importpath = "github.com/howeyc/gopass",
 )
 
@@ -62,24 +63,24 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_crypto",
-    commit = "60c769a6c58655dab1b9adac0d58967dd517cfba",
+    commit = "0ec3e9974c59449edd84298612e9f16fa13368e8",
     importpath = "golang.org/x/crypto",
 )
 
 go_repository(
     name = "org_golang_x_net",
-    commit = "74dc4d7220e7acc4e100824340f3e66577424772",
+    commit = "d3edc9973b7eb1fb302b0ff2c62357091cea9a30",
     importpath = "golang.org/x/net",
 )
 
 go_repository(
     name = "org_golang_x_text",
-    commit = "342b2e1fbaa52c93f31447ad2c6abc048c63e475",
+    commit = "06d492aade888ab8698aad35476286b7b555c961",
     importpath = "golang.org/x/text",
 )
 
 go_repository(
     name = "org_golang_x_sys",
-    commit = "fb81701db80f1745f51259b1f286de3fe2ec80c8",
+    commit = "9dae0f8f577553e0f21298e18926efc9644c281d",
     importpath = "golang.org/x/sys",
 )
