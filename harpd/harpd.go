@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/BranLwyd/harpocrates/harpd/counter"
@@ -25,10 +24,6 @@ import (
 var (
 	configFile = flag.String("config", "", "The harpd configuration file to use.")
 )
-
-func init() {
-	os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1") // enable TLS 1.3; remove once enabled by default
-}
 
 // serv implements server.Server.
 type serv struct{}
@@ -114,7 +109,7 @@ func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
 				tls.X25519,
 				tls.CurveP256,
 			},
-			MinVersion:             tls.VersionTLS12, // TODO: reset to TLS 1.3 once supported by acme/autocert and Let's Encrypt
+			MinVersion:             tls.VersionTLS13,
 			SessionTicketsDisabled: true,
 			GetCertificate:         m.GetCertificate,
 			NextProtos:             []string{"h2", acme.ALPNProto},
