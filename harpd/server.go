@@ -19,8 +19,8 @@ import (
 // Server provides an interface to the functionality in a harpocrates server
 // that differs between the server types (debug, release).
 type Server interface {
-	// ParseConfig parses the server configuration, returning a Config
-	// struct, the key to use, and a U2F counter store.
+	// ParseConfig parses the server configuration, returning a Config struct, the key to use, and an
+	// MFA counter store.
 	ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ *counter.Store, _ error)
 
 	// Serve serves the given HTTP handler. It should not return.
@@ -44,7 +44,7 @@ func Run(s Server) {
 	if err != nil {
 		log.Fatalf("Could not create secret vault: %v", err)
 	}
-	sh, err := session.NewHandler(vault, cfg.HostName, cfg.U2FReg, sessionDuration, cs, cfg.NewSessionRate, alerter)
+	sh, err := session.NewHandler(vault, cfg.HostName, cfg.MfaReg, sessionDuration, cs, cfg.NewSessionRate, alerter)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}

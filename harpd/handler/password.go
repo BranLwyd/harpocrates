@@ -88,8 +88,8 @@ func newPassword() *passwordHandler {
 }
 
 func (ph passwordHandler) authPath(r *http.Request) (string, error) {
-	// If this is requesting an entry, require U2F authentication per page.
-	// If this is requesting a directory, only require that some U2F authentication has been done.
+	// If this is requesting an entry, require multi-factor authentication of this path specifically.
+	// If this is requesting a directory, only require that MFA has been done for some path.
 	path, isDir := parsePath(r.URL.Path)
 	if isDir {
 		return authAny, nil

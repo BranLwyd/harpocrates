@@ -27,7 +27,7 @@ const (
 var (
 	ErrNoSession               = errors.New("no such session")
 	ErrNoChallenge             = errors.New("no current challenge")
-	ErrU2FAuthenticationFailed = errors.New("U2F authentication failed")
+	ErrMFAAuthenticationFailed = errors.New("MFA authentication failed")
 )
 
 // Handler handles management of sessions, including creation, deletion, and
@@ -38,9 +38,9 @@ type Handler struct {
 
 	vault           secret.Vault       // locked password data
 	sessionDuration time.Duration      // how long sessions last
-	counters        *counter.Store     // Store of U2F counters by key handle.
-	appID           string             // U2F app ID
-	registrations   []u2f.Registration // U2F device registrations
+	counters        *counter.Store     // Store of MFA counters by key handle.
+	appID           string             // MFA app ID
+	registrations   []u2f.Registration // MFA device registrations
 	rateLimiter     rate.Limiter       // rate limiter for creating new sessions
 	alerter         alert.Alerter      // used to notify user of alerts
 }
@@ -136,9 +136,8 @@ func (h *Handler) GetSession(sessionID string) (*Session, error) {
 		sess.mu.RLock()
 		defer sess.mu.RUnlock()
 
-		// Only reset the timer if the user has completed U2F
-		// authentication, to ensure that partially-authenticated users
-		// can't keep a session open indefinitely.
+		// Only reset the timer if the user has completed MFA, to ensure that partially-authenticated
+		// users can't keep a session open indefinitely.
 		if len(sess.authedPaths) > 0 {
 			if !sess.expirationTimer.Stop() {
 				return nil, ErrNoSession
@@ -157,8 +156,8 @@ func (h *Handler) closeSession(sessID string) {
 		sess.expirationTimer.Stop()
 		delete(h.sessions, sessID)
 
-		if !sess.IsU2FAuthenticated() {
-			h.alert(alert.UNAUTHENTICATED_SESSION_CLOSED, "Session closed without completing U2F authentication.")
+		if !sess.IsMFAAuthenticated() {
+			h.alert(alert.UNAUTHENTICATED_SESSION_CLOSED, "Session closed without completing multi-factor authentication.")
 		}
 	}
 }
@@ -198,27 +197,26 @@ func (s *Session) GetStore() secret.Store {
 	return s.store
 }
 
-// IsU2FAuthenticated determines if the user has authenticated with U2F for
-// any path.
-func (s *Session) IsU2FAuthenticated() bool {
+// IsMFAAuthenticated determines if the user has performed multi-factor authentication for any
+// path.
+func (s *Session) IsMFAAuthenticated() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.authedPaths) > 0
 }
 
-// IsU2FAuthenticatedFor determines if the user has authenticated with U2F for
-// the given path.
-func (s *Session) IsU2FAuthenticatedFor(path string) bool {
+// IsMFAAuthenticatedFor determines if the user has performed multi-factor authentication for the
+// given path.
+func (s *Session) IsMFAAuthenticatedFor(path string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	_, ok := s.authedPaths[path]
 	return ok
 }
 
-// GenerateU2FChallenge generates a new U2F challenge for the given path.
-// It replaces any previous U2F challenges that may exist for this or any other
-// paths.
-func (s *Session) GenerateU2FChallenge(path string) (*u2f.Challenge, error) {
+// GenerateMFAChallenge generates a new multi-factor authentication challenge for the given path. It
+// replaces any previous MFA challenges that may exist for this or any other paths.
+func (s *Session) GenerateMFAChallenge(path string) (*u2f.Challenge, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c, err := u2f.NewChallenge(s.h.appID, []string{s.h.appID})
@@ -230,10 +228,9 @@ func (s *Session) GenerateU2FChallenge(path string) (*u2f.Challenge, error) {
 	return c, nil
 }
 
-// GetU2FChallenge gets the existing U2F challenge for the given path.
-// It returns ErrNoChallenge if there is no existing U2F challenge for the
-// given path.
-func (s *Session) GetU2FChallenge(path string) (*u2f.Challenge, error) {
+// GetMFAChallenge gets the existing multi-factor authentication challenge for the given path. It
+// returns ErrNoChallenge if there is no existing MFA challenge for the given path.
+func (s *Session) GetMFAChallenge(path string) (*u2f.Challenge, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.challengePath != path || s.challenge == nil {
@@ -242,12 +239,11 @@ func (s *Session) GetU2FChallenge(path string) (*u2f.Challenge, error) {
 	return s.challenge, nil
 }
 
-// AuthenticateU2FResponse authenticates the user for the given path with the
-// given U2F signing response. It returns ErrNoChallenge if there is no
-// existing challenge for the given path, and ErrU2FAuthenticationFailed if it
-// was not possible to authenticate the user with the given U2F signing
-// response.
-func (s *Session) AuthenticateU2FResponse(path string, sr u2f.SignResponse) error {
+// AuthenticateMFAResponse authenticates the user for the given path with the given multi-factor
+// authentication signing response. It returns ErrNoChallenge if there is no existing challenge for
+// the given path, and ErrMFAAuthenticationFailed if it was not possible to authenticate the user
+// with the given MFA signing response.
+func (s *Session) AuthenticateMFAResponse(path string, sr u2f.SignResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.challengePath != path || s.challenge == nil {
@@ -270,10 +266,10 @@ func (s *Session) AuthenticateU2FResponse(path string, sr u2f.SignResponse) erro
 			return nil
 		}
 	}
-	return ErrU2FAuthenticationFailed
+	return ErrMFAAuthenticationFailed
 }
 
-// U2FRegistrations gets the set of registrations for U2F devices.
-func (s *Session) U2FRegistrations() []u2f.Registration {
+// MFARegistrations gets the set of registrations for MFA devices.
+func (s *Session) MFARegistrations() []u2f.Registration {
 	return s.h.registrations
 }

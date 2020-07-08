@@ -27,7 +27,7 @@ const (
 
 var (
 	loginPasswordHandler = must(newAsset("harpd/assets/pages/login-password.html", "text/html; charset=utf-8"))
-	loginU2FAuthTmpl     = template.Must(template.New("u2f-authenticate").Parse(string(assets.MustAsset("harpd/assets/templates/u2f-authenticate.html"))))
+	loginMFAAuthTmpl     = template.Must(template.New("mfa-authenticate").Parse(string(assets.MustAsset("harpd/assets/templates/mfa-authenticate.html"))))
 )
 
 // authHandler handles getting an authenticated session for the user session.
@@ -44,11 +44,10 @@ type authenticatedHTTPHandler interface {
 	// http.Request.
 	http.Handler
 
-	// authPath returns the path that should be U2F-authenticated for this
-	// request. It can also return the empty string if no U2F
-	// authentication is required, or authAny if U2F-authentication of any
-	// page is sufficient to allow access to this page. A session.Session
-	// is guaranteed to be available from the passed http.Request.
+	// authPath returns the path that should be multi-factor authenticated for this request. It can
+	// also return the empty string if no MFA is required, or authAny if MFA of any path is sufficient
+	// to allow access to this page. A session.Session is guaranteed to be available from the passed
+	// http.Request.
 	authPath(*http.Request) (string, error)
 }
 
@@ -83,16 +82,15 @@ func (lh authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r = r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, sess))
 
-	// The user has a session. If this page needs additional U2F
-	// authentication, prompt for it.
-	ap, err := lh.u2fPath(r, sess)
+	// The user has a session. If this page needs additional multi-factor authentication, prompt for it.
+	ap, err := lh.mfaPath(r, sess)
 	if err != nil {
-		log.Printf("Could not determine U2F authentication path: %v", err)
+		log.Printf("Could not determine multi-factor authentication path: %v", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	if ap != "" {
-		lh.serveU2FHTTP(w, r, sess, ap)
+		lh.serveMFAHTTP(w, r, sess, ap)
 		return
 	}
 
@@ -135,58 +133,58 @@ func (lh authHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (lh authHandler) u2fPath(r *http.Request, sess *session.Session) (string, error) {
+func (lh authHandler) mfaPath(r *http.Request, sess *session.Session) (string, error) {
 	ap, err := lh.ahh.authPath(r)
 	if err != nil {
 		return "", fmt.Errorf("could not get authentication path: %v", err)
 	}
 
-	if ap == authAny && sess.IsU2FAuthenticated() {
+	if ap == authAny && sess.IsMFAAuthenticated() {
 		return "", nil
 	}
-	if ap != "" && sess.IsU2FAuthenticatedFor(ap) {
+	if ap != "" && sess.IsMFAAuthenticatedFor(ap) {
 		return "", nil
 	}
 	return ap, nil
 }
 
-func (lh authHandler) serveU2FHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, authPath string) {
+func (lh authHandler) serveMFAHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, authPath string) {
 	switch r.Method {
 	case http.MethodGet:
-		// If the user has no U2F device registrations, send them to where they can register a U2F device.
-		if len(sess.U2FRegistrations()) == 0 {
+		// If the user has no MFA device registrations, send them to where they can register an MFA device.
+		if len(sess.MFARegistrations()) == 0 {
 			http.Redirect(w, r, "/register", http.StatusSeeOther)
 			return
 		}
 
-		c, err := sess.GenerateU2FChallenge(authPath)
+		c, err := sess.GenerateMFAChallenge(authPath)
 		if err != nil {
-			log.Printf("Could not create U2F authentication challenge: %v", err)
+			log.Printf("Could not create multi-factor authentication challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		req := c.SignRequest(sess.U2FRegistrations())
+		req := c.SignRequest(sess.MFARegistrations())
 		reqBytes, err := json.Marshal(req)
 		if err != nil {
-			log.Printf("Could not marshal U2F authentication challenge: %v", err)
+			log.Printf("Could not marshal MFA authentication challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		serveTemplate(w, r, loginU2FAuthTmpl, string(reqBytes))
+		serveTemplate(w, r, loginMFAAuthTmpl, string(reqBytes))
 
 	case http.MethodPost:
-		if r.FormValue("action") != "u2f-auth" {
+		if r.FormValue("action") != "mfa-auth" {
 			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 			return
 		}
 		var resp u2f.SignResponse
 		if err := json.Unmarshal([]byte(r.FormValue("response")), &resp); err != nil {
-			log.Printf("Could not parse U2F authentication response: %v", err)
+			log.Printf("Could not parse multi-factor authentication response: %v", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		if err := sess.AuthenticateU2FResponse(authPath, resp); err != nil && err != session.ErrU2FAuthenticationFailed {
-			log.Printf("Could not U2F authenticate: %v", err)
+		if err := sess.AuthenticateMFAResponse(authPath, resp); err != nil && err != session.ErrMFAAuthenticationFailed {
+			log.Printf("Could not authenticate MFA response: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

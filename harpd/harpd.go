@@ -89,7 +89,7 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ *counter.Store, _ error)
 
 	cs, err := counter.NewStore(cfg.CounterFile)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("could not create U2F counter store: %v", err)
+		return nil, nil, nil, fmt.Errorf("could not create MFA counter store: %v", err)
 	}
 
 	return cfg, k, cs, nil

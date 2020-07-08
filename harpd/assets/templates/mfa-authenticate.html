@@ -3,7 +3,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=0.5" />
 	<title>Login</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
-	<script type="application/javascript" src="/u2f-api.js"></script>
+	<script type="application/javascript" src="/mfa-api.js"></script>
 </head>
 <body>
 	<div class="content">
@@ -12,15 +12,15 @@
 		</div>
 
 		<div class="inner-content">
-			<h2 class="message" id="message"><span class="fa">&#xf084;</span> Insert and touch your U2F device.</h2>
+			<h2 class="message" id="message"><span class="fa">&#xf084;</span> Insert and touch your MFA device.</h2>
 
 			<form method="POST" id="data" data-req="{{.}}">
 				<input type="hidden" name="response" id="response" />
-				<input type="hidden" name="action" value="u2f-auth" />
+				<input type="hidden" name="action" value="mfa-auth" />
 			</form>
 		</div>
 	</div>
 
-	<script type="application/javascript" src="/u2f-authenticate.js"></script>
+	<script type="application/javascript" src="/mfa-authenticate.js"></script>
 </body>
 </html>

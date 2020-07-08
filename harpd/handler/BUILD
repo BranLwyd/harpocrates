@@ -9,7 +9,7 @@ go_library(
         "misc.go",
         "password.go",
         "search.go",
-        "u2f.go",
+        "mfa.go",
     ],
     importpath = "github.com/BranLwyd/harpocrates/harpd/handler",
     visibility = ["//harpd:__pkg__"],

@@ -12,10 +12,10 @@ message Config {
   string pass_loc = 4;
   // Required. The location of the encrypted key.
   string key_file = 5;
-  // Required. The location of the U2F counter file.
+  // Required. The location of the multi-factor authentication counter file.
   string counter_file = 6;
-  // U2F registration blobs.
-  repeated string u2f_reg = 7;
+  // Multi-factor authentication registration blobs.
+  repeated string mfa_reg = 7;
   // The command to run when an alert is generated.
   string alert_cmd = 8;
   // The length of an unattended session, in seconds. Defaults to 300 (5 minutes).

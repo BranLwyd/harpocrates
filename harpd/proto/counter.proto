@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-// Counters tracks state for U2F counter devices.
+// Counters tracks state for multi-factor authentication counter devices.
 message Counters {
   // Counter value by key handle.
   map<string, uint32> counter = 1;

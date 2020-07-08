@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	u2f        = flag.String("u2f", "", "If specified, the U2F key to use.")
+	mfa        = flag.String("mfa", "", "If specified, the MFA key to use.")
 	hostname   = flag.String("hostname", "", "The hostname to serve with. Defaults to os.Hostname().")
 	encryption = flag.String("encryption", "sbox", "The type of encryption to use. Valid options include `sbox` and `pgp`.")
 )
@@ -58,16 +58,16 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) 
 	if err := restoreAssets(passDir, fmt.Sprintf("harpd/assets/debug/passwords.%s", *encryption)); err != nil {
 		return nil, nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
 	}
-	var u2fRegs []string
-	if *u2f != "" {
-		u2fRegs = []string{*u2f}
+	var mfaRegs []string
+	if *mfa != "" {
+		mfaRegs = []string{*mfa}
 	} else {
-		log.Printf("No U2F registration specified. Navigate to https://%s:8080/register to register a token, then specify it via --u2f.", *hostname)
+		log.Printf("No MFA registration specified. Navigate to https://%s:8080/register to register a token, then specify it via --mfa.", *hostname)
 	}
 	cfg := &cpb.Config{
 		HostName:         fmt.Sprintf("%s:8080", *hostname),
 		PassLoc:          filepath.Join(passDir, fmt.Sprintf("harpd/assets/debug/passwords.%s", *encryption)),
-		U2FReg:           u2fRegs,
+		MfaReg:           mfaRegs,
 		SessionDurationS: 300,
 		NewSessionRate:   1,
 	}

@@ -1,24 +1,24 @@
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=0.5" />
-	<title>Register U2F Device</title>
+	<title>Register MFA Device</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
-	<script type="application/javascript" src="/u2f-api.js"></script>
+	<script type="application/javascript" src="/mfa-api.js"></script>
 </head>
 <body>
 	<div class="content">
 		<div class="header">
-			<h1>Register U2F Device</h1>
+			<h1>Register MFA Device</h1>
 			<div class="controls">
 				<a href="/logout"><span class="fa">&#xf08b;</span> Logout</a>
 			</div>
 		</div>
 
 		<div class="inner-content" id="data" data-req="{{.}}">
-			<h2 class="message" id="message"><span class="fa">&#xf084;</span> Insert and touch your U2F device.</h2>
+			<h2 class="message" id="message"><span class="fa">&#xf084;</span> Insert and touch your MFA device.</h2>
 		</div>
 	</div>
 
-	<script type="application/javascript" src="/u2f-register.js"></script>
+	<script type="application/javascript" src="/mfa-register.js"></script>
 </body>
 </html>

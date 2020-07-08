@@ -1,4 +1,4 @@
-// Package counter provides functionality for tracking of U2F counters.
+// Package counter provides functionality for tracking of multi-factor authentication counters.
 package counter
 
 import (
@@ -14,9 +14,9 @@ import (
 	cpb "github.com/BranLwyd/harpocrates/harpd/proto/counter_go_proto"
 )
 
-// Store stores a uint32 counter keyed by an opaque string, and serializes
-// changes to disk. Used for storing & retrieving U2F counters. It is safe for
-// concurrent use from multiple goroutines.
+// Store stores a uint32 counter keyed by an opaque string, and serializes changes to disk. Used for
+// storing & retrieving multi-factor authentication counters. It is safe for concurrent use from
+// multiple goroutines.
 type Store struct {
 	mu      sync.RWMutex // protects store, file named by ctrFile
 	ctrs    *cpb.Counters
@@ -31,7 +31,7 @@ func NewStore(counterFile string) (*Store, error) {
 	switch {
 	case err == nil:
 		if err := proto.Unmarshal(cfBytes, ctrs); err != nil {
-			return nil, fmt.Errorf("could not parse U2F counter file: %v", err)
+			return nil, fmt.Errorf("could not parse MFA counter file: %v", err)
 		}
 
 	case os.IsNotExist(err):
@@ -39,7 +39,7 @@ func NewStore(counterFile string) (*Store, error) {
 		log.Printf("Creating counter file %q", counterFile)
 
 	default:
-		return nil, fmt.Errorf("could not read U2F counter file: %v", err)
+		return nil, fmt.Errorf("could not read MFA counter file: %v", err)
 	}
 
 	// Create a store, then write to make sure we can update the counter file.
@@ -48,7 +48,7 @@ func NewStore(counterFile string) (*Store, error) {
 		ctrFile: counterFile,
 	}
 	if err := s.write(); err != nil {
-		return nil, fmt.Errorf("could not write U2F counters: %v", err)
+		return nil, fmt.Errorf("could not write MFA counters: %v", err)
 	}
 	return s, nil
 }
@@ -95,7 +95,7 @@ func (s *Store) Set(handle string, val uint32) (retErr error) {
 
 	// Write to disk.
 	if err := s.write(); err != nil {
-		return fmt.Errorf("could not write U2F counters: %v", err)
+		return fmt.Errorf("could not write MFA counters: %v", err)
 	}
 	return nil
 }
@@ -108,9 +108,9 @@ func (s *Store) write() error {
 
 	ctrBytes, err := proto.Marshal(s.ctrs)
 	if err != nil {
-		return fmt.Errorf("could not serialize U2F counters: %v", err)
+		return fmt.Errorf("could not serialize MFA counters: %v", err)
 	}
-	tempFile, err := ioutil.TempFile(filepath.Dir(s.ctrFile), ".harp_u2fctr")
+	tempFile, err := ioutil.TempFile(filepath.Dir(s.ctrFile), ".harp_mfactr")
 	if err != nil {
 		return fmt.Errorf("could not create temporary file: %v", err)
 	}
@@ -118,13 +118,13 @@ func (s *Store) write() error {
 	defer os.Remove(tempFilename)
 	defer tempFile.Close()
 	if _, err := tempFile.Write(ctrBytes); err != nil {
-		return fmt.Errorf("could not write U2F counter file: %v", err)
+		return fmt.Errorf("could not write MFA counter file: %v", err)
 	}
 	if err := tempFile.Close(); err != nil {
-		return fmt.Errorf("could not close U2F counter file: %v", tempFile.Name(), err)
+		return fmt.Errorf("could not close MFA counter file: %v", tempFile.Name(), err)
 	}
 	if err := os.Rename(tempFilename, s.ctrFile); err != nil {
-		return fmt.Errorf("could not rename U2F counter file: %v", err)
+		return fmt.Errorf("could not rename MFA counter file: %v", err)
 	}
 	return nil
 }
