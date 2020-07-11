@@ -12,14 +12,12 @@ message Config {
   string pass_loc = 4;
   // Required. The location of the encrypted key.
   string key_file = 5;
-  // Required. The location of the multi-factor authentication counter file.
-  string counter_file = 6;
   // Multi-factor authentication registration blobs.
-  repeated string mfa_reg = 7;
+  repeated string mfa_reg = 6;
   // The command to run when an alert is generated.
-  string alert_cmd = 8;
+  string alert_cmd = 7;
   // The length of an unattended session, in seconds. Defaults to 300 (5 minutes).
-  double session_duration_s = 9;
+  double session_duration_s = 8;
   // The rate that new sessions (password login attempts) can be made per IP, in Hz. Defaults to 1.
-  double new_session_rate = 10;
+  double new_session_rate = 9;
 }

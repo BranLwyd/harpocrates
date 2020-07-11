@@ -8,7 +8,6 @@ go_binary(
     srcs = ["harpd.go"],
     pure = "on",
     deps = [
-        ":counter",
         ":server",
         "//harpd/handler",
         "//harpd/proto:config_go_proto",
@@ -24,7 +23,6 @@ go_binary(
     srcs = ["harpd_debug.go"],
     pure = "on",
     deps = [
-        ":counter",
         ":debug_assets",
         ":server",
         "//harpd/handler",
@@ -44,16 +42,6 @@ go_library(
 )
 
 go_library(
-    name = "counter",
-    srcs = ["counter.go"],
-    importpath = "github.com/BranLwyd/harpocrates/harpd/counter",
-    deps = [
-        "//harpd/proto:counter_go_proto",
-        "@com_github_golang_protobuf//proto:go_default_library",
-    ],
-)
-
-go_library(
     name = "rate",
     srcs = ["rate.go"],
     importpath = "github.com/BranLwyd/harpocrates/harpd/rate",
@@ -66,7 +54,6 @@ go_library(
     importpath = "github.com/BranLwyd/harpocrates/harpd/server",
     deps = [
         ":alert",
-        ":counter",
         ":session",
         "//harpd/handler",
         "//harpd/proto:config_go_proto",
@@ -82,7 +69,6 @@ go_library(
     visibility = ["//harpd/handler:__pkg__"],
     deps = [
         ":alert",
-        ":counter",
         ":rate",
         "//secret",
         "@com_github_tstranex_u2f//:go_default_library",

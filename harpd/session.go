@@ -14,7 +14,6 @@ import (
 	"github.com/tstranex/u2f"
 
 	"github.com/BranLwyd/harpocrates/harpd/alert"
-	"github.com/BranLwyd/harpocrates/harpd/counter"
 	"github.com/BranLwyd/harpocrates/harpd/rate"
 	"github.com/BranLwyd/harpocrates/secret"
 )
@@ -38,7 +37,6 @@ type Handler struct {
 
 	vault           secret.Vault       // locked password data
 	sessionDuration time.Duration      // how long sessions last
-	counters        *counter.Store     // Store of MFA counters by key handle.
 	appID           string             // MFA app ID
 	registrations   []u2f.Registration // MFA device registrations
 	rateLimiter     rate.Limiter       // rate limiter for creating new sessions
@@ -46,7 +44,7 @@ type Handler struct {
 }
 
 // NewHandler creates a new session handler.
-func NewHandler(vault secret.Vault, host string, registrations []string, sessionDuration time.Duration, cs *counter.Store, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
+func NewHandler(vault secret.Vault, host string, registrations []string, sessionDuration time.Duration, newSessionRate float64, alerter alert.Alerter) (*Handler, error) {
 	if sessionDuration <= 0 {
 		return nil, errors.New("nonpositive session length")
 	}
@@ -68,7 +66,6 @@ func NewHandler(vault secret.Vault, host string, registrations []string, session
 		sessions:        make(map[string]*Session),
 		vault:           vault,
 		sessionDuration: sessionDuration,
-		counters:        cs,
 		appID:           fmt.Sprintf("https://%s", host),
 		registrations:   regs,
 		rateLimiter:     rate.NewLimiter(newSessionRate, 1),
@@ -249,14 +246,8 @@ func (s *Session) AuthenticateMFAResponse(path string, sr u2f.SignResponse) erro
 	if s.challengePath != path || s.challenge == nil {
 		return ErrNoChallenge
 	}
-	ctr := s.h.counters.Get(sr.KeyHandle)
 	for _, reg := range s.h.registrations {
-		if newCtr, err := reg.Authenticate(sr, *s.challenge, ctr); err == nil {
-			// Successful authentication. Store counter before we allow progress.
-			if err := s.h.counters.Set(sr.KeyHandle, newCtr); err != nil {
-				return fmt.Errorf("could not set new counter value: %v", err)
-			}
-
+		if _, err := reg.Authenticate(sr, *s.challenge, 0); err == nil {
 			if len(s.authedPaths) == 0 {
 				s.h.alert(alert.LOGIN, fmt.Sprintf("New session authenticated."))
 			}

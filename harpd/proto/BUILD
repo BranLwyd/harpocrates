@@ -12,15 +12,3 @@ go_proto_library(
     proto = ":config_proto",
     visibility = ["//harpd:__pkg__"],
 )
-
-proto_library(
-    name = "counter_proto",
-    srcs = ["counter.proto"],
-)
-
-go_proto_library(
-    name = "counter_go_proto",
-    importpath = "github.com/BranLwyd/harpocrates/harpd/proto/counter_go_proto",
-    proto = ":counter_proto",
-    visibility = ["//harpd:__pkg__"],
-)

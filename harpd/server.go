@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/BranLwyd/harpocrates/harpd/alert"
-	"github.com/BranLwyd/harpocrates/harpd/counter"
 	"github.com/BranLwyd/harpocrates/harpd/handler"
 	"github.com/BranLwyd/harpocrates/harpd/session"
 	"github.com/BranLwyd/harpocrates/secret/key"
@@ -21,7 +20,7 @@ import (
 type Server interface {
 	// ParseConfig parses the server configuration, returning a Config struct, the key to use, and an
 	// MFA counter store.
-	ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ *counter.Store, _ error)
+	ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ error)
 
 	// Serve serves the given HTTP handler. It should not return.
 	Serve(*cpb.Config, http.Handler) error
@@ -29,7 +28,7 @@ type Server interface {
 
 func Run(s Server) {
 	// Parse config & prepare session handler.
-	cfg, k, cs, err := s.ParseConfig()
+	cfg, k, err := s.ParseConfig()
 	if err != nil {
 		log.Fatalf("Could not parse configuration: %v", err)
 	}
@@ -44,7 +43,7 @@ func Run(s Server) {
 	if err != nil {
 		log.Fatalf("Could not create secret vault: %v", err)
 	}
-	sh, err := session.NewHandler(vault, cfg.HostName, cfg.MfaReg, sessionDuration, cs, cfg.NewSessionRate, alerter)
+	sh, err := session.NewHandler(vault, cfg.HostName, cfg.MfaReg, sessionDuration, cfg.NewSessionRate, alerter)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}

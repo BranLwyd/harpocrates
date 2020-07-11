@@ -49,6 +49,12 @@ go_repository(
 )
 
 go_repository(
+    name = "com_github_e3b0c442_warp",
+    commit = "26555d590c2c25c32dfe9908efff8416f0f1c922",
+    importpath = "github.com/e3b0c442/warp"
+)
+
+go_repository(
     name = "com_github_tstranex_u2f",
     commit = "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
     importpath = "github.com/tstranex/u2f",

@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BranLwyd/harpocrates/harpd/counter"
 	"github.com/BranLwyd/harpocrates/harpd/debug_assets"
 	"github.com/BranLwyd/harpocrates/harpd/handler"
 	"github.com/BranLwyd/harpocrates/harpd/server"
@@ -41,22 +40,20 @@ func init() {
 // serv implements server.Server.
 type serv struct{}
 
-func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) {
+func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ error) {
 	keyBytes := mustAsset(fmt.Sprintf("harpd/assets/debug/key.%s", *encryption))
 	k := &pb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
-		return nil, nil, nil, fmt.Errorf("could not parse key: %v", err)
+		return nil, nil, fmt.Errorf("could not parse key: %v", err)
 	}
-
-	cs := counter.NewMemoryStore()
 
 	passDir, err := ioutil.TempDir("", "harpd_debug_")
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("could not create temporary directory: %v", err)
+		return nil, nil, fmt.Errorf("could not create temporary directory: %v", err)
 	}
 	log.Printf("Debug mode: serving passwords from %q", passDir)
 	if err := restoreAssets(passDir, fmt.Sprintf("harpd/assets/debug/passwords.%s", *encryption)); err != nil {
-		return nil, nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
+		return nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
 	}
 	var mfaRegs []string
 	if *mfa != "" {
@@ -71,7 +68,7 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ *counter.Store, _ error) 
 		SessionDurationS: 300,
 		NewSessionRate:   1,
 	}
-	return cfg, k, cs, nil
+	return cfg, k, nil
 }
 
 func (serv) Serve(_ *cpb.Config, h http.Handler) error {
