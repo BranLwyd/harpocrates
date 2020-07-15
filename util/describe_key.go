@@ -17,6 +17,11 @@ func dieWithUsage(format string, a ...interface{}) {
 	os.Exit(1)
 }
 
+func die(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	os.Exit(1)
+}
+
 func main() {
 	// Parse and verify flags.
 	flag.Usage = func() {
@@ -41,12 +46,12 @@ func main() {
 func describeKey(kf string) {
 	keyBytes, err := ioutil.ReadFile(kf)
 	if err != nil {
-		fmt.Printf("%s: could not read keyfile: %v\n", kf, err)
+		die("%s: could not read keyfile: %v", kf, err)
 		return
 	}
 	key := &kpb.Key{}
 	if err := proto.Unmarshal(keyBytes, key); err != nil {
-		fmt.Printf("%s: could not parse keyfile: %v\n", kf, err)
+		die("%s: could not parse keyfile: %v", kf, err)
 		return
 	}
 
@@ -58,8 +63,8 @@ func describeKey(kf string) {
 		fmt.Printf("%s: Secretbox key\n", kf)
 		fmt.Printf("Parameters: N = %d, r = %d, p = %d\n", k.SecretboxKey.N, k.SecretboxKey.R, k.SecretboxKey.P)
 	case nil:
-		fmt.Printf("%s: could not parse keyfile: no key\n", kf)
+		die("%s: could not parse keyfile: no key", kf)
 	default:
-		fmt.Printf("%s: unknown key type\n", kf)
+		die("%s: unknown key type", kf)
 	}
 }

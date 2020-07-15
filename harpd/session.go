@@ -87,7 +87,7 @@ func NewHandler(vault secret.Vault, origin string, mfaCredentials []string, sess
 
 	u, err := url.Parse(origin)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't parse origin: %v", err)
+		return nil, fmt.Errorf("couldn't parse origin: %w", err)
 	}
 	domain := u.Hostname()
 
@@ -105,7 +105,7 @@ func NewHandler(vault secret.Vault, origin string, mfaCredentials []string, sess
 	for i, c := range mfaCredentials {
 		cred, err := decodeCredential(c)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't parse registration %d: %v", i, err)
+			return nil, fmt.Errorf("couldn't parse registration %d: %w", i, err)
 		}
 		h.mfaCredentials[base64.RawURLEncoding.EncodeToString(cred.CredentialID)] = credential{h, cred}
 		h.mfaCredentialDescriptors = append(h.mfaCredentialDescriptors, warp.PublicKeyCredentialDescriptor{
@@ -126,7 +126,7 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 		if err == rate.ErrTooManyEvents {
 			return "", nil, err
 		}
-		return "", nil, fmt.Errorf("couldn't wait for rate limiter: %v", err)
+		return "", nil, fmt.Errorf("couldn't wait for rate limiter: %w", err)
 	}
 
 	// Get a secret.Store using the supplied passphrase.
@@ -134,13 +134,13 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	if err == secret.ErrWrongPassphrase {
 		return "", nil, err
 	} else if err != nil {
-		return "", nil, fmt.Errorf("could not unlock vault: %v", err)
+		return "", nil, fmt.Errorf("could not unlock vault: %w", err)
 	}
 
 	// Generate session ID.
 	var sID [sessionIDLength]byte
 	if _, err := rand.Read(sID[:]); err != nil {
-		return "", nil, fmt.Errorf("could not generate session ID: %v", err)
+		return "", nil, fmt.Errorf("could not generate session ID: %w", err)
 	}
 	sessID := string(sID[:])
 
@@ -149,7 +149,7 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	for _, ok := h.sessions[sessID]; ok; _, ok = h.sessions[sessID] {
 		// This loop body is overwhelmingly likely to never run.
 		if _, err := rand.Read(sID[:]); err != nil {
-			return "", nil, fmt.Errorf("could not generate session ID: %v", err)
+			return "", nil, fmt.Errorf("could not generate session ID: %w", err)
 		}
 		sessID = string(sID[:])
 	}
@@ -207,7 +207,7 @@ func (h *Handler) alert(code alert.Code, details string) {
 		ctx, c := context.WithTimeout(context.Background(), alertTimeLimit)
 		defer c()
 		if err := h.alerter.Alert(ctx, code, details); err != nil {
-			log.Printf("Could not send alert (%s %q): %v", code, details, err)
+			log.Printf("Could not send alert (%s %q): %w", code, details, err)
 		}
 	}()
 }
@@ -240,7 +240,7 @@ func (s *Session) GenerateMFARegistrationChallenge() (*warp.PublicKeyCredentialC
 	defer s.mu.Unlock()
 	opts, err := warp.StartRegistration(relyingParty{s.h}, user{s.h})
 	if err != nil {
-		return nil, fmt.Errorf("couldn't generate MFA registration challenge: %v", err)
+		return nil, fmt.Errorf("couldn't generate MFA registration challenge: %w", err)
 	}
 	s.mfaRegChallenge = opts
 	return opts, nil
@@ -279,7 +279,7 @@ func (s *Session) CompleteMFARegistration(cred *warp.AttestationPublicKeyCredent
 	}
 	encodedCred, err := encodeCredential(&att.AuthData.AttestedCredentialData)
 	if err != nil {
-		return "", fmt.Errorf("couldn't encode credential: %v", err)
+		return "", fmt.Errorf("couldn't encode credential: %w", err)
 	}
 	s.mfaRegChallenge = nil
 	return encodedCred, nil
@@ -309,7 +309,7 @@ func (s *Session) GenerateMFAChallenge(path string) (*warp.PublicKeyCredentialRe
 	defer s.mu.Unlock()
 	opts, err := warp.StartAuthentication(warp.AllowCredentials(s.h.mfaCredentialDescriptors), warp.RelyingPartyID(s.h.domain))
 	if err != nil {
-		return nil, fmt.Errorf("could not generate MFA challenge: %v", err)
+		return nil, fmt.Errorf("could not generate MFA challenge: %w", err)
 	}
 	s.mfaChallengePath = path
 	s.mfaChallenge = opts
@@ -357,7 +357,7 @@ func (s *Session) HasRegisteredMFADevice() bool { return len(s.h.mfaCredentials)
 func encodeCredential(cred *warp.AttestedCredentialData) (string, error) {
 	var buf bytes.Buffer
 	if err := cred.Encode(&buf); err != nil {
-		return "", fmt.Errorf("couldn't encode credential: %v", err)
+		return "", fmt.Errorf("couldn't encode credential: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(buf.Bytes()), nil
 }
@@ -365,11 +365,11 @@ func encodeCredential(cred *warp.AttestedCredentialData) (string, error) {
 func decodeCredential(encodedCred string) (*warp.AttestedCredentialData, error) {
 	credBytes, err := base64.RawURLEncoding.DecodeString(encodedCred)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't decode credential: %v", err)
+		return nil, fmt.Errorf("couldn't decode credential: %w", err)
 	}
 	cred := &warp.AttestedCredentialData{}
 	if err := cred.Decode(bytes.NewReader(credBytes)); err != nil {
-		return nil, fmt.Errorf("couldn't parse registration: %v", err)
+		return nil, fmt.Errorf("couldn't parse registration: %w", err)
 	}
 	return cred, nil
 }

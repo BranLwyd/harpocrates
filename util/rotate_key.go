@@ -23,23 +23,22 @@ var (
 )
 
 func die(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, a...)
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
 	os.Exit(1)
 }
 
 func vault(location, keyFile string) (secret.Vault, error) {
 	keyBytes, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		return nil, fmt.Errorf("could not read key file: %v", err)
+		return nil, fmt.Errorf("could not read key file: %w", err)
 	}
 	k := &kpb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
-		return nil, fmt.Errorf("could not unmarshal key: %v", err)
+		return nil, fmt.Errorf("could not unmarshal key: %w", err)
 	}
 	v, err := key.NewVault(location, k)
 	if err != nil {
-		return nil, fmt.Errorf("could not create vault: %v", err)
+		return nil, fmt.Errorf("could not create vault: %w", err)
 	}
 	return v, nil
 }

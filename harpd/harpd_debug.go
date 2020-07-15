@@ -40,16 +40,16 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *pb.Key, _ error) {
 	keyBytes := mustAsset(fmt.Sprintf("harpd/assets/debug/key.%s", *encryption))
 	k := &pb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
-		return nil, nil, fmt.Errorf("could not parse key: %v", err)
+		return nil, nil, fmt.Errorf("could not parse key: %w", err)
 	}
 
 	passDir, err := ioutil.TempDir("", "harpd_debug_")
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not create temporary directory: %v", err)
+		return nil, nil, fmt.Errorf("could not create temporary directory: %w", err)
 	}
 	log.Printf("Debug mode: serving passwords from %q", passDir)
 	if err := restoreAssets(passDir, fmt.Sprintf("harpd/assets/debug/passwords.%s", *encryption)); err != nil {
-		return nil, nil, fmt.Errorf("could not prepare password directory: %v", err)
+		return nil, nil, fmt.Errorf("could not prepare password directory: %w", err)
 	}
 	var mfaRegs []string
 	if *mfa != "" {
@@ -71,12 +71,12 @@ func (serv) Serve(_ *cpb.Config, h http.Handler) error {
 	// Generate a self-signed certificate with the appropriate hostname.
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		log.Fatalf("Could not generate key: %v", err)
+		return fmt.Errorf("could not generate key: %w", err)
 	}
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		log.Fatalf("Failed to generate serial number: %v", err)
+		return fmt.Errorf("failed to generate serial number: %w", err)
 	}
 	now := time.Now()
 	template := &x509.Certificate{
@@ -93,11 +93,11 @@ func (serv) Serve(_ *cpb.Config, h http.Handler) error {
 	}
 	certDER, err := x509.CreateCertificate(rand.Reader, template, template, priv.Public(), priv)
 	if err != nil {
-		log.Fatalf("Failed to create certificate: %v", err)
+		return fmt.Errorf("failed to create certificate: %w", err)
 	}
 	cert, err := x509.ParseCertificate(certDER)
 	if err != nil {
-		log.Fatalf("Failed to parse certificate: %v", err)
+		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
 	// Begin serving.
@@ -139,10 +139,10 @@ func restoreAssets(dst, src string) error {
 		fn := filepath.Join(dst, name)
 		pth := filepath.Dir(fn)
 		if err := os.MkdirAll(pth, 0755); err != nil {
-			return fmt.Errorf("could not create %q: %v", pth, err)
+			return fmt.Errorf("could not create %q: %w", pth, err)
 		}
 		if err := ioutil.WriteFile(fn, val, 0644); err != nil {
-			return fmt.Errorf("could not write %q: %v", fn, err)
+			return fmt.Errorf("could not write %q: %w", fn, err)
 		}
 	}
 	return nil

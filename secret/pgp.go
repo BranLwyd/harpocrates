@@ -17,9 +17,10 @@ import (
 	"github.com/BranLwyd/harpocrates/secret/key_private"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
-	_ "golang.org/x/crypto/ripemd160"
 
 	pb "github.com/BranLwyd/harpocrates/secret/proto/key_go_proto"
+
+	_ "golang.org/x/crypto/ripemd160" // for access to RIPEMD-160 hash (used by PGP)
 )
 
 func init() {
@@ -50,7 +51,7 @@ func (v *vault) Unlock(passphrase string) (secret.Store, error) {
 	// Read entity, decrypt keys using passphrase.
 	entity, err := openpgp.ReadEntity(packet.NewReader(strings.NewReader(v.serializedEntity)))
 	if err != nil {
-		return nil, fmt.Errorf("could not read entity: %v", err)
+		return nil, fmt.Errorf("could not read entity: %w", err)
 	}
 	pb := []byte(passphrase)
 	if err := entity.PrivateKey.Decrypt(pb); err != nil {
@@ -74,13 +75,13 @@ func (c crypter) Encrypt(entry, content string) (ciphertext []byte, _ error) {
 	var buf bytes.Buffer
 	w, err := openpgp.Encrypt(&buf, []*openpgp.Entity{c.entity}, c.entity, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not start encrypting password content: %v", err)
+		return nil, fmt.Errorf("could not start encrypting password content: %w", err)
 	}
 	if _, err := io.Copy(w, strings.NewReader(content)); err != nil {
-		return nil, fmt.Errorf("could not write encrypted content: %v", err)
+		return nil, fmt.Errorf("could not write encrypted content: %w", err)
 	}
 	if err := w.Close(); err != nil {
-		return nil, fmt.Errorf("could not finish writing encrypted content: %v", err)
+		return nil, fmt.Errorf("could not finish writing encrypted content: %w", err)
 	}
 	return buf.Bytes(), nil
 }
@@ -88,14 +89,14 @@ func (c crypter) Encrypt(entry, content string) (ciphertext []byte, _ error) {
 func (c crypter) Decrypt(entry string, ciphertext []byte) (content string, _ error) {
 	md, err := openpgp.ReadMessage(bytes.NewReader(ciphertext), openpgp.EntityList{c.entity}, nil, nil)
 	if err != nil {
-		return "", fmt.Errorf("could not read PGP message: %v", err)
+		return "", fmt.Errorf("could not read PGP message: %w", err)
 	}
 	contentBytes, err := ioutil.ReadAll(md.UnverifiedBody)
 	if err != nil {
-		return "", fmt.Errorf("could not read PGP message body: %v", err)
+		return "", fmt.Errorf("could not read PGP message body: %w", err)
 	}
 	if md.SignatureError != nil {
-		return "", fmt.Errorf("message verification error: %v", md.SignatureError)
+		return "", fmt.Errorf("message verification error: %w", md.SignatureError)
 	}
 	return string(contentBytes), nil
 }

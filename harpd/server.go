@@ -50,6 +50,5 @@ func Run(s Server) {
 	}
 
 	// Start serving.
-	err = s.Serve(cfg, handler.NewContent(sh))
-	log.Fatalf("Error while serving: %v", err)
+	log.Fatalf("Error while serving: %v", s.Serve(cfg, handler.NewContent(sh)))
 }

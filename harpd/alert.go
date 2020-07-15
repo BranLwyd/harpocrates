@@ -54,7 +54,7 @@ func (ca cmdAlerter) Alert(ctx context.Context, code Code, details string) error
 	cmd := exec.CommandContext(ctx, ca.cmd)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("ALERT_CODE=%s", code), fmt.Sprintf("ALERT_DETAILS=%s", details))
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("alert command %q failed: %v", ca.cmd, err)
+		return fmt.Errorf("alert command %q failed: %w", ca.cmd, err)
 	}
 	return nil
 }

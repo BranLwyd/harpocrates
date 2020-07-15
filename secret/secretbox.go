@@ -69,7 +69,7 @@ func (v *vault) Unlock(passphrase string) (secret.Store, error) {
 	var kek [keySize]byte
 	kekBuf, err := scrypt.Key([]byte(passphrase), v.salt, v.n, v.r, v.p, keySize)
 	if err != nil {
-		return nil, fmt.Errorf("could not derive key-encryption key: %v", err)
+		return nil, fmt.Errorf("could not derive key-encryption key: %w", err)
 	}
 	copy(kek[:], kekBuf)
 
@@ -89,7 +89,7 @@ type crypter struct{ key [keySize]byte }
 func (c crypter) Encrypt(entryName, content string) (ciphertext []byte, _ error) {
 	var nonce [nonceSize]byte
 	if _, err := rand.Read(nonce[:]); err != nil {
-		return nil, fmt.Errorf("could not generate nonce: %v", err)
+		return nil, fmt.Errorf("could not generate nonce: %w", err)
 	}
 
 	encryptedContent := secretbox.Seal(nil, []byte(content), &nonce, &c.key)
@@ -98,7 +98,7 @@ func (c crypter) Encrypt(entryName, content string) (ciphertext []byte, _ error)
 		Nonce:            nonce[:],
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal entry: %v", err)
+		return nil, fmt.Errorf("could not marshal entry: %w", err)
 	}
 	return ciphertext, nil
 }
@@ -106,7 +106,7 @@ func (c crypter) Encrypt(entryName, content string) (ciphertext []byte, _ error)
 func (c crypter) Decrypt(entryName string, ciphertext []byte) (content string, _ error) {
 	entry := &epb.Entry{}
 	if err := proto.Unmarshal(ciphertext, entry); err != nil {
-		return "", fmt.Errorf("could not unmarshal entry: %v", err)
+		return "", fmt.Errorf("could not unmarshal entry: %w", err)
 	}
 	var nonce [nonceSize]byte
 	copy(nonce[:], entry.Nonce)

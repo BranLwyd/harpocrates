@@ -26,8 +26,7 @@ var (
 )
 
 func die(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, a...)
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
 	os.Exit(1)
 }
 
