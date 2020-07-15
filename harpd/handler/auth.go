@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/tstranex/u2f"
+	"github.com/e3b0c442/warp"
 
 	"github.com/BranLwyd/harpocrates/harpd/assets"
 	"github.com/BranLwyd/harpocrates/harpd/rate"
@@ -152,38 +152,37 @@ func (lh authHandler) serveMFAHTTP(w http.ResponseWriter, r *http.Request, sess 
 	switch r.Method {
 	case http.MethodGet:
 		// If the user has no MFA device registrations, send them to where they can register an MFA device.
-		if len(sess.MFARegistrations()) == 0 {
+		if !sess.HasRegisteredMFADevice() {
 			http.Redirect(w, r, "/register", http.StatusSeeOther)
 			return
 		}
 
 		c, err := sess.GenerateMFAChallenge(authPath)
 		if err != nil {
-			log.Printf("Could not create multi-factor authentication challenge: %v", err)
+			log.Printf("Could not create MFA challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		req := c.SignRequest(sess.MFARegistrations())
-		reqBytes, err := json.Marshal(req)
+		cBytes, err := json.Marshal(c)
 		if err != nil {
-			log.Printf("Could not marshal MFA authentication challenge: %v", err)
+			log.Printf("Could not marshal MFA challenge: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		serveTemplate(w, r, loginMFAAuthTmpl, string(reqBytes))
+		serveTemplate(w, r, loginMFAAuthTmpl, string(cBytes))
 
 	case http.MethodPost:
 		if r.FormValue("action") != "mfa-auth" {
 			http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 			return
 		}
-		var resp u2f.SignResponse
-		if err := json.Unmarshal([]byte(r.FormValue("response")), &resp); err != nil {
-			log.Printf("Could not parse multi-factor authentication response: %v", err)
+		cred := &warp.AssertionPublicKeyCredential{}
+		if err := json.Unmarshal([]byte(r.FormValue("response")), &cred); err != nil {
+			log.Printf("Could not parse MFA response: %v", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		if err := sess.AuthenticateMFAResponse(authPath, resp); err != nil && err != session.ErrMFAAuthenticationFailed {
+		if err := sess.AuthenticateMFAResponse(authPath, cred); err != nil && err != session.ErrMFAAuthenticationFailed {
 			log.Printf("Could not authenticate MFA response: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

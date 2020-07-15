@@ -71,7 +71,7 @@ go_library(
         ":alert",
         ":rate",
         "//secret",
-        "@com_github_tstranex_u2f//:go_default_library",
+        "@com_github_e3b0c442_warp//:go_default_library",
     ],
 )
 

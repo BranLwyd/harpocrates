@@ -3,7 +3,6 @@
 	<meta name="viewport" content="width=device-width, initial-scale=0.5" />
 	<title>Login</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
-	<script type="application/javascript" src="/mfa-api.js"></script>
 </head>
 <body>
 	<div class="content">
@@ -14,7 +13,7 @@
 		<div class="inner-content">
 			<h2 class="message" id="message"><span class="fa">&#xf084;</span> Insert and touch your MFA device.</h2>
 
-			<form method="POST" id="data" data-req="{{.}}">
+			<form method="POST" id="data" data-challenge="{{.}}">
 				<input type="hidden" name="response" id="response" />
 				<input type="hidden" name="action" value="mfa-auth" />
 			</form>

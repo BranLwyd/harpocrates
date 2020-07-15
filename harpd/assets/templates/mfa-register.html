@@ -3,7 +3,6 @@
 	<meta name="viewport" content="width=device-width, initial-scale=0.5" />
 	<title>Register MFA Device</title>
 	<link rel="stylesheet" type="text/css" href="/style.css">
-	<script type="application/javascript" src="/mfa-api.js"></script>
 </head>
 <body>
 	<div class="content">
@@ -14,7 +13,7 @@
 			</div>
 		</div>
 
-		<div class="inner-content" id="data" data-req="{{.}}">
+		<div class="inner-content" id="data" data-challenge="{{.}}">
 			<h2 class="message" id="message"><span class="fa">&#xf084;</span> Insert and touch your MFA device.</h2>
 		</div>
 	</div>

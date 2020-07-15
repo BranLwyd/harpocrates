@@ -1,34 +1,45 @@
-function registerCallback(resp) {
-  // Check error.
-  var el = document.getElementById("message");
-  if (('errorCode' in resp) && (resp.errorCode !== u2f.ErrorCodes['OK'])) {
-    var msg = 'U2F error ' + resp.errorCode;
-    for (name in u2f.ErrorCodes) {
-      if (resp.errorCode === u2f.ErrorCodes[name]) {
-        msg += ' (' + name + ')';
-      }
-    }
-    if (resp.errorMessage) {
-      msg += ': ' + resp.errorMessage;
-    }
-    el.textContent = msg;
-    return;
-  }
+async function performRegistration(challenge) {
+  const el = document.getElementById("message");
 
-  // POST request to server and display response.
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', '/register');
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.timeout = 5000;
-  xhr.addEventListener("load", function() {
-    if (xhr.status === 200) {
-      el.textContent = 'Registration: ' + xhr.responseText;
-    } else {
-      el.textContent = 'Server error: ' + xhr.statusText;
+  try {
+    // Get a new credential based on the options included as the challenge.
+    const pubKeyCredOpts = JSON.parse(challenge);
+    pubKeyCredOpts.challenge = Uint8Array.from(atob(pubKeyCredOpts.challenge), c => c.charCodeAt(0));
+    pubKeyCredOpts.user.id = Uint8Array.from(atob(pubKeyCredOpts.user.id), c => c.charCodeAt(0));
+    const cred = await navigator.credentials.create({publicKey: pubKeyCredOpts});
+
+    // Send the credential to the server to get the registration.
+    const toSend = {
+      id: cred.id,
+      type: cred.type,
+      rawId: btoa(String.fromCharCode.apply(null, new Uint8Array(cred.rawId))),
+      response: {
+        attestationObject: btoa(String.fromCharCode.apply(null, new Uint8Array(cred.response.attestationObject))),
+        clientDataJSON: btoa(String.fromCharCode.apply(null, new Uint8Array(cred.response.clientDataJSON))),
+      },
     }
-  });
-  xhr.send(JSON.stringify(resp));
+    if(cred.extensions) {
+      toSend.extensions = cred.extensions;
+    }
+
+    const resp = await fetch('/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(toSend),
+    });
+
+    // Display the registration on the page.
+    if (resp.ok) {
+      const reg = await resp.text();
+      el.innerText = `Registration: ${reg}`;
+    } else {
+      const errorText = await resp.text();
+      throw errorText
+    }
+  } catch (e) {
+    console.error(e);
+    el.innerText = `Registration failure (see console for details)`;
+  }
 }
 
-var req = JSON.parse(document.getElementById("data").getAttribute("data-req"));
-u2f.register(req.appId, req.registerRequests, req.registeredKeys, registerCallback);
+performRegistration(document.getElementById("data").getAttribute("data-challenge"));

@@ -55,9 +55,19 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_tstranex_u2f",
-    commit = "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
-    importpath = "github.com/tstranex/u2f",
+    name = "com_github_fxamacker_cbor",
+    commit = "58b82b5bfc053491126a65b6d1608b832ca97f7b",
+    importpath = "github.com/fxamacker/cbor/v2",
+
+    # remote & vcs must be specified explicitly since this package uses Go modules above v1
+    remote = "https://github.com/fxamacker/cbor",
+    vcs = "git",
+)
+
+go_repository(
+    name = "com_github_x448_float16",
+    commit = "e05feda6110a1a856d5e652ddadf51b54b7c9e0a",
+    importpath = "github.com/x448/float16"
 )
 
 go_repository(

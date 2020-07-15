@@ -1,25 +1,38 @@
-function signCallback(resp) {
-  // Check error.
-  if (('errorCode' in resp) && (resp.errorCode !== u2f.ErrorCodes['OK'])) {
-    var msgEl = document.getElementById("message");
-    var msg = 'U2F error ' + resp.errorCode;
-    for (name in u2f.ErrorCodes) {
-      if (resp.errorCode === u2f.ErrorCodes[name]) {
-        msg += ' (' + name + ')';
+async function performAuthentication(challenge) {
+  try {
+    // Authenticate possession of the credential based on the server's challenge.
+    const pubKeyCredOpts = JSON.parse(challenge);
+    pubKeyCredOpts.challenge = Uint8Array.from(atob(pubKeyCredOpts.challenge), c => c.charCodeAt(0));
+    if(pubKeyCredOpts.allowCredentials) {
+      for (let i = 0; i < pubKeyCredOpts.allowCredentials.length; i++) {
+        pubKeyCredOpts.allowCredentials[i].id = Uint8Array.from(atob(pubKeyCredOpts.allowCredentials[i].id), c => c.charCodeAt(0));
       }
     }
-    if (resp.errorMessage) {
-      msg += ': ' + resp.errorMessage;
-    }
-    msgEl.textContent = msg;
-    return;
-  }
+    const resp = await navigator.credentials.get({publicKey: pubKeyCredOpts});
 
-  // POST response to server.
-  var respEl = document.getElementById("response");
-  respEl.value = JSON.stringify(resp);
-  respEl.form.submit();
+    // POST the response back to the server.
+    const toSend = {
+      id: resp.id,
+      rawId: btoa(String.fromCharCode.apply(null, new Uint8Array(resp.rawId))),
+      response: {
+        authenticatorData: btoa(String.fromCharCode.apply(null, new Uint8Array(resp.response.authenticatorData))),
+        signature: btoa(String.fromCharCode.apply(null, new Uint8Array(resp.response.signature))),
+        clientDataJSON: btoa(String.fromCharCode.apply(null, new Uint8Array(resp.response.clientDataJSON))),
+      },
+      type: resp.type
+    }
+    if(resp.extensions) {
+      toSend.extensions = resp.extensions
+    }
+
+    const el = document.getElementById("response");
+    el.value = JSON.stringify(toSend);
+    el.form.submit();
+  } catch(e) {
+    const el = document.getElementById("message");
+    console.error(e);
+    el.innerText = `Registration failure (see console for details)`;
+  }
 }
 
-var req = JSON.parse(document.getElementById("data").getAttribute("data-req"));
-u2f.sign(req.appId, req.challenge, req.registeredKeys, signCallback);
+performAuthentication(document.getElementById("data").getAttribute("data-challenge"))

@@ -2,6 +2,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -43,7 +44,7 @@ func Run(s Server) {
 	if err != nil {
 		log.Fatalf("Could not create secret vault: %v", err)
 	}
-	sh, err := session.NewHandler(vault, cfg.HostName, cfg.MfaReg, sessionDuration, cfg.NewSessionRate, alerter)
+	sh, err := session.NewHandler(vault, fmt.Sprintf("https://%s", cfg.HostName), cfg.MfaReg, sessionDuration, cfg.NewSessionRate, alerter)
 	if err != nil {
 		log.Fatalf("Could not create session handler: %v", err)
 	}
