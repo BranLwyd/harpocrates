@@ -51,7 +51,7 @@ go_repository(
 go_repository(
     name = "com_github_e3b0c442_warp",
     commit = "26555d590c2c25c32dfe9908efff8416f0f1c922",
-    importpath = "github.com/e3b0c442/warp"
+    importpath = "github.com/e3b0c442/warp",
 )
 
 go_repository(
@@ -67,7 +67,7 @@ go_repository(
 go_repository(
     name = "com_github_x448_float16",
     commit = "e05feda6110a1a856d5e652ddadf51b54b7c9e0a",
-    importpath = "github.com/x448/float16"
+    importpath = "github.com/x448/float16",
 )
 
 go_repository(
