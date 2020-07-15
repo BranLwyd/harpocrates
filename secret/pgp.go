@@ -51,7 +51,7 @@ func (v *vault) Unlock(passphrase string) (secret.Store, error) {
 	// Read entity, decrypt keys using passphrase.
 	entity, err := openpgp.ReadEntity(packet.NewReader(strings.NewReader(v.serializedEntity)))
 	if err != nil {
-		return nil, fmt.Errorf("could not read entity: %w", err)
+		return nil, fmt.Errorf("couldn't read entity: %w", err)
 	}
 	pb := []byte(passphrase)
 	if err := entity.PrivateKey.Decrypt(pb); err != nil {
@@ -75,13 +75,13 @@ func (c crypter) Encrypt(entry, content string) (ciphertext []byte, _ error) {
 	var buf bytes.Buffer
 	w, err := openpgp.Encrypt(&buf, []*openpgp.Entity{c.entity}, c.entity, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not start encrypting password content: %w", err)
+		return nil, fmt.Errorf("couldn't start encrypting password content: %w", err)
 	}
 	if _, err := io.Copy(w, strings.NewReader(content)); err != nil {
-		return nil, fmt.Errorf("could not write encrypted content: %w", err)
+		return nil, fmt.Errorf("couldn't write encrypted content: %w", err)
 	}
 	if err := w.Close(); err != nil {
-		return nil, fmt.Errorf("could not finish writing encrypted content: %w", err)
+		return nil, fmt.Errorf("couldn't finish writing encrypted content: %w", err)
 	}
 	return buf.Bytes(), nil
 }
@@ -89,11 +89,11 @@ func (c crypter) Encrypt(entry, content string) (ciphertext []byte, _ error) {
 func (c crypter) Decrypt(entry string, ciphertext []byte) (content string, _ error) {
 	md, err := openpgp.ReadMessage(bytes.NewReader(ciphertext), openpgp.EntityList{c.entity}, nil, nil)
 	if err != nil {
-		return "", fmt.Errorf("could not read PGP message: %w", err)
+		return "", fmt.Errorf("couldn't read PGP message: %w", err)
 	}
 	contentBytes, err := ioutil.ReadAll(md.UnverifiedBody)
 	if err != nil {
-		return "", fmt.Errorf("could not read PGP message body: %w", err)
+		return "", fmt.Errorf("couldn't read PGP message body: %w", err)
 	}
 	if md.SignatureError != nil {
 		return "", fmt.Errorf("message verification error: %w", md.SignatureError)

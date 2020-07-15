@@ -46,12 +46,12 @@ func main() {
 func describeKey(kf string) {
 	keyBytes, err := ioutil.ReadFile(kf)
 	if err != nil {
-		die("%s: could not read keyfile: %v", kf, err)
+		die("%s: couldn't read keyfile: %v", kf, err)
 		return
 	}
 	key := &kpb.Key{}
 	if err := proto.Unmarshal(keyBytes, key); err != nil {
-		die("%s: could not parse keyfile: %v", kf, err)
+		die("%s: couldn't parse keyfile: %v", kf, err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func describeKey(kf string) {
 		fmt.Printf("%s: Secretbox key\n", kf)
 		fmt.Printf("Parameters: N = %d, r = %d, p = %d\n", k.SecretboxKey.N, k.SecretboxKey.R, k.SecretboxKey.P)
 	case nil:
-		die("%s: could not parse keyfile: no key", kf)
+		die("%s: couldn't parse keyfile: no key", kf)
 	default:
 		die("%s: unknown key type", kf)
 	}

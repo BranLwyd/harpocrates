@@ -134,13 +134,13 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	if err == secret.ErrWrongPassphrase {
 		return "", nil, err
 	} else if err != nil {
-		return "", nil, fmt.Errorf("could not unlock vault: %w", err)
+		return "", nil, fmt.Errorf("couldn't unlock vault: %w", err)
 	}
 
 	// Generate session ID.
 	var sID [sessionIDLength]byte
 	if _, err := rand.Read(sID[:]); err != nil {
-		return "", nil, fmt.Errorf("could not generate session ID: %w", err)
+		return "", nil, fmt.Errorf("couldn't generate session ID: %w", err)
 	}
 	sessID := string(sID[:])
 
@@ -149,7 +149,7 @@ func (h *Handler) CreateSession(clientID, passphrase string) (string, *Session, 
 	for _, ok := h.sessions[sessID]; ok; _, ok = h.sessions[sessID] {
 		// This loop body is overwhelmingly likely to never run.
 		if _, err := rand.Read(sID[:]); err != nil {
-			return "", nil, fmt.Errorf("could not generate session ID: %w", err)
+			return "", nil, fmt.Errorf("couldn't generate session ID: %w", err)
 		}
 		sessID = string(sID[:])
 	}
@@ -309,7 +309,7 @@ func (s *Session) GenerateMFAChallenge(path string) (*warp.PublicKeyCredentialRe
 	defer s.mu.Unlock()
 	opts, err := warp.StartAuthentication(warp.AllowCredentials(s.h.mfaCredentialDescriptors), warp.RelyingPartyID(s.h.domain))
 	if err != nil {
-		return nil, fmt.Errorf("could not generate MFA challenge: %w", err)
+		return nil, fmt.Errorf("couldn't generate MFA challenge: %w", err)
 	}
 	s.mfaChallengePath = path
 	s.mfaChallenge = opts

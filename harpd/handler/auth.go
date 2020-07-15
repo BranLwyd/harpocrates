@@ -136,7 +136,7 @@ func (lh authHandler) servePasswordHTTP(w http.ResponseWriter, r *http.Request) 
 func (lh authHandler) mfaPath(r *http.Request, sess *session.Session) (string, error) {
 	ap, err := lh.ahh.authPath(r)
 	if err != nil {
-		return "", fmt.Errorf("could not get authentication path: %w", err)
+		return "", fmt.Errorf("couldn't get authentication path: %w", err)
 	}
 
 	if ap == authAny && sess.IsMFAAuthenticated() {
@@ -211,7 +211,7 @@ func sessionIDFromRequest(r *http.Request) (string, error) {
 		if err == http.ErrNoCookie {
 			return "", nil
 		} else {
-			return "", fmt.Errorf("could not get cookie: %w", err)
+			return "", fmt.Errorf("couldn't get cookie: %w", err)
 		}
 	}
 
@@ -220,7 +220,7 @@ func sessionIDFromRequest(r *http.Request) (string, error) {
 		if _, ok := err.(base64.CorruptInputError); ok {
 			return "", nil
 		} else {
-			return "", fmt.Errorf("could not decode cookie value: %w", err)
+			return "", fmt.Errorf("couldn't decode cookie value: %w", err)
 		}
 	}
 	return string(sid), nil

@@ -52,12 +52,12 @@ func (s *store) List() ([]string, error) {
 	if err := filepath.Walk(s.baseDir, func(path string, info os.FileInfo, inErr error) error {
 		switch {
 		case inErr != nil:
-			return fmt.Errorf("could not walk %q: %w", path, inErr)
+			return fmt.Errorf("couldn't walk %q: %w", path, inErr)
 
 		case !info.IsDir() && strings.HasSuffix(path, s.extension):
 			entry, err := filepath.Rel(s.baseDir, strings.TrimSuffix(path, s.extension))
 			if err != nil {
-				return fmt.Errorf("could not get relative path of %q: %w", path, err)
+				return fmt.Errorf("couldn't get relative path of %q: %w", path, err)
 			}
 			entries = append(entries, "/"+entry)
 		}
@@ -72,18 +72,18 @@ func (s *store) List() ([]string, error) {
 func (s *store) Get(entry string) (string, error) {
 	entryFilename, err := s.getEntryFilename(entry)
 	if err != nil {
-		return "", fmt.Errorf("could not get entry filename for %q: %w", entry, err)
+		return "", fmt.Errorf("couldn't get entry filename for %q: %w", entry, err)
 	}
 	ciphertext, err := ioutil.ReadFile(entryFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", secret.ErrNoEntry
 		}
-		return "", fmt.Errorf("could not read %q: %w", entryFilename, err)
+		return "", fmt.Errorf("couldn't read %q: %w", entryFilename, err)
 	}
 	content, err := s.crypter.Decrypt(entry, ciphertext)
 	if err != nil {
-		return "", fmt.Errorf("could not decrypt: %w", err)
+		return "", fmt.Errorf("couldn't decrypt: %w", err)
 	}
 	return content, nil
 }
@@ -94,35 +94,35 @@ func (s *store) Get(entry string) (string, error) {
 func (s *store) Put(entry, content string) error {
 	ciphertext, err := s.crypter.Encrypt(entry, content)
 	if err != nil {
-		return fmt.Errorf("could not encrypt: %w", err)
+		return fmt.Errorf("couldn't encrypt: %w", err)
 	}
 
 	entryFilename, err := s.getEntryFilename(entry)
 	if err != nil {
-		return fmt.Errorf("could not get entry filename for %q: %w", entry, err)
+		return fmt.Errorf("couldn't get entry filename for %q: %w", entry, err)
 	}
 	entryDir := filepath.Dir(entryFilename)
 	if err := os.MkdirAll(entryDir, 0770); err != nil {
-		return fmt.Errorf("could not create directory %q: %w", entryDir, err)
+		return fmt.Errorf("couldn't create directory %q: %w", entryDir, err)
 	}
 	tempFile, err := ioutil.TempFile(entryDir, ".gopass_tmp_")
 	if err != nil {
-		return fmt.Errorf("could not create temporary file: %w", err)
+		return fmt.Errorf("couldn't create temporary file: %w", err)
 	}
 	tempFilename := tempFile.Name()
 	defer os.Remove(tempFilename)
 	defer tempFile.Close()
 	if err := os.Chmod(tempFilename, 0660); err != nil {
-		return fmt.Errorf("could not set permissions: %w", err)
+		return fmt.Errorf("couldn't set permissions: %w", err)
 	}
 	if _, err := tempFile.Write(ciphertext); err != nil {
-		return fmt.Errorf("could not write encrypted content: %w", err)
+		return fmt.Errorf("couldn't write encrypted content: %w", err)
 	}
 	if err := tempFile.Close(); err != nil {
-		return fmt.Errorf("could not close %q: %w", tempFile.Name(), err)
+		return fmt.Errorf("couldn't close %q: %w", tempFile.Name(), err)
 	}
 	if err := os.Rename(tempFilename, entryFilename); err != nil {
-		return fmt.Errorf("could not rename %q -> %q: %w", tempFilename, entryFilename, err)
+		return fmt.Errorf("couldn't rename %q -> %q: %w", tempFilename, entryFilename, err)
 	}
 	return nil
 }
@@ -131,13 +131,13 @@ func (s *store) Put(entry, content string) error {
 func (s *store) Delete(entry string) error {
 	entryFilename, err := s.getEntryFilename(entry)
 	if err != nil {
-		return fmt.Errorf("could not get entry filename for %q: %w", entry, err)
+		return fmt.Errorf("couldn't get entry filename for %q: %w", entry, err)
 	}
 	if err := os.Remove(entryFilename); err != nil {
 		if os.IsNotExist(err) {
 			return secret.ErrNoEntry
 		}
-		return fmt.Errorf("could not delete %q: %w", entryFilename, err)
+		return fmt.Errorf("couldn't delete %q: %w", entryFilename, err)
 	}
 
 	// Clean up newly-empty directories.
@@ -145,7 +145,7 @@ func (s *store) Delete(entry string) error {
 		remove, err := func() (bool, error) {
 			dirFile, err := os.Open(entryDir)
 			if err != nil {
-				return false, fmt.Errorf("could not open directory %q: %w", err)
+				return false, fmt.Errorf("couldn't open directory %q: %w", err)
 			}
 			defer dirFile.Close()
 			if _, err := dirFile.Readdir(1); err == io.EOF {
@@ -154,13 +154,13 @@ func (s *store) Delete(entry string) error {
 			return false, err
 		}()
 		if err != nil {
-			return fmt.Errorf("could not readdir %q: %w", entryDir, err)
+			return fmt.Errorf("couldn't readdir %q: %w", entryDir, err)
 		}
 		if !remove {
 			break
 		}
 		if err := os.Remove(entryDir); err != nil {
-			return fmt.Errorf("could not delete %q: %w", entryDir, err)
+			return fmt.Errorf("couldn't delete %q: %w", entryDir, err)
 		}
 	}
 	return nil

@@ -30,15 +30,15 @@ func die(format string, a ...interface{}) {
 func vault(location, keyFile string) (secret.Vault, error) {
 	keyBytes, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		return nil, fmt.Errorf("could not read key file: %w", err)
+		return nil, fmt.Errorf("couldn't read key file: %w", err)
 	}
 	k := &kpb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
-		return nil, fmt.Errorf("could not unmarshal key: %w", err)
+		return nil, fmt.Errorf("couldn't unmarshal key: %w", err)
 	}
 	v, err := key.NewVault(location, k)
 	if err != nil {
-		return nil, fmt.Errorf("could not create vault: %w", err)
+		return nil, fmt.Errorf("couldn't create vault: %w", err)
 	}
 	return v, nil
 }

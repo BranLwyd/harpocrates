@@ -30,7 +30,7 @@ func newSearch() *searchHandler {
 func (searchHandler) authPath(r *http.Request) (string, error) {
 	matches, err := performSearch(r)
 	if err != nil {
-		return "", fmt.Errorf("could not perform search: %w", err)
+		return "", fmt.Errorf("couldn't perform search: %w", err)
 	}
 	if len(matches) == 1 {
 		// Authenticate against the page we'll be forwarding to,
@@ -76,7 +76,7 @@ func performSearch(r *http.Request) ([]string, error) {
 	sess := sessionFrom(r)
 	allEntries, err := sess.GetStore().List()
 	if err != nil {
-		return nil, fmt.Errorf("could not list entries: %w", err)
+		return nil, fmt.Errorf("couldn't list entries: %w", err)
 	}
 	var matches []string
 	for _, e := range allEntries {

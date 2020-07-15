@@ -31,11 +31,11 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ error) {
 	// Read & parse the config.
 	cfgBytes, err := ioutil.ReadFile(*configFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not read config file: %w", err)
+		return nil, nil, fmt.Errorf("couldn't read config file: %w", err)
 	}
 	cfg := &cpb.Config{}
 	if err := proto.UnmarshalText(string(cfgBytes), cfg); err != nil {
-		return nil, nil, fmt.Errorf("could not parse config file: %w", err)
+		return nil, nil, fmt.Errorf("couldn't parse config file: %w", err)
 	}
 
 	// Fill in sesnsible defaults for some fields if needed.
@@ -76,11 +76,11 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ error) {
 	// Create key, counter store based on config.
 	keyBytes, err := ioutil.ReadFile(cfg.KeyFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not read key file: %w", err)
+		return nil, nil, fmt.Errorf("couldn't read key file: %w", err)
 	}
 	k := &kpb.Key{}
 	if err := proto.Unmarshal(keyBytes, k); err != nil {
-		return nil, nil, fmt.Errorf("could not parse key: %w", err)
+		return nil, nil, fmt.Errorf("couldn't parse key: %w", err)
 	}
 
 	return cfg, k, nil
