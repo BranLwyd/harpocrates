@@ -33,10 +33,6 @@ var (
 	encryption = flag.String("encryption", "sbox", "The type of encryption to use. Valid options include `sbox` and `pgp`.")
 )
 
-func init() {
-	os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1") // enable TLS 1.3; remove once enabled by default
-}
-
 // serv implements server.Server.
 type serv struct{}
 
