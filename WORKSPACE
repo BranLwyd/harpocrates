@@ -2,19 +2,19 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "142dd33e38b563605f0d20e89d9ef9eda0fc3cb539a14be1bdb1350de2eda659",
+    sha256 = "2697f6bc7c529ee5e6a2d9799870b9ec9eaeb3ee7d70ed50b87a2c2c97e13d9e",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.22.2/rules_go-v0.22.2.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.22.2/rules_go-v0.22.2.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.23.8/rules_go-v0.23.8.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.23.8/rules_go-v0.23.8.tar.gz",
     ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "d8c45ee70ec39a57e7a05e5027c32b1576cc7f16d9dd37135b0eddde45cf1b10",
+    sha256 = "cdb02a887a7187ea4d5a27452311a75ed8637379a1287d8eeb952138ea485f7d",
     urls = [
-        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/v0.20.0/bazel-gazelle-v0.20.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.20.0/bazel-gazelle-v0.20.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.21.1/bazel-gazelle-v0.21.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.21.1/bazel-gazelle-v0.21.1.tar.gz",
     ],
 )
 
@@ -44,7 +44,7 @@ rules_proto_toolchains()
 
 go_repository(
     name = "cc_mvdan_xurls",
-    commit = "f17a35f0a418829668ba7381786910e917119a33",
+    commit = "3572df0ef4b3ddcc91d256dde5838eaac042714e",
     importpath = "mvdan.cc/xurls",
 )
 
@@ -56,7 +56,7 @@ go_repository(
 
 go_repository(
     name = "com_github_fxamacker_cbor",
-    commit = "58b82b5bfc053491126a65b6d1608b832ca97f7b",
+    commit = "a26ad4a7e59d43c9265c5e997c4f92cb5afe045c",
     importpath = "github.com/fxamacker/cbor/v2",
 
     # remote & vcs must be specified explicitly since this package uses Go modules above v1
@@ -72,13 +72,13 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_crypto",
-    commit = "948cd5f35899cbf089c620b3caeac9b60fa08704",
+    commit = "123391ffb6de907695e1066dc40c1ff09322aeb6",
     importpath = "golang.org/x/crypto",
 )
 
 go_repository(
     name = "org_golang_x_net",
-    commit = "ab34263943818b32f575efc978a3d24e80b04bd7",
+    commit = "3edf25e44fccea9e11b919341e952fca722ef460",
     importpath = "golang.org/x/net",
 )
 
@@ -90,6 +90,6 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_sys",
-    commit = "ddb9806d33aed8dbaac1cd6f1cba58952e87f933",
+    commit = "3d37ad5750ed7900cf6800ca4b000cb87d6e497a",
     importpath = "golang.org/x/sys",
 )
