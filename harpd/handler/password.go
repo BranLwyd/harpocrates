@@ -171,7 +171,8 @@ func (ph passwordHandler) serveEntryUpdateHTTP(w http.ResponseWriter, r *http.Re
 	}
 
 	// Display new content to user.
-	ph.serveEntryViewHTTP(w, r, sess, entryPath)
+	// (We redirect to an equivalent GET request rather than just rendering in this request to allow refreshes.)
+	http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 }
 
 func (ph passwordHandler) serveDirectoryViewHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, dirPath string) {
