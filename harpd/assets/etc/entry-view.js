@@ -7,16 +7,16 @@ function hidePasswordData() {
     document.getElementById("content-edit").remove();
 
     // Make the edit link noninteractive since password data has been hidden.
-    var el = document.getElementById("edit-link")
+    const el = document.getElementById("edit-link")
     el.removeAttribute("href");
     el.onclick = null;
   }
 }
 
 window.onload = function() {
-  var hidePasswordDataTimeoutID = window.setTimeout(hidePasswordData, 60000);
+  const hidePasswordDataTimeoutID = window.setTimeout(hidePasswordData, 60000);
 
-  var editLink = document.getElementById("edit-link")
+  const editLink = document.getElementById("edit-link")
   editLink.onclick = function() {
     // Cancel the hide-password timer since we are now in edit mode.
     window.clearTimeout(hidePasswordDataTimeoutID);
@@ -31,10 +31,10 @@ window.onload = function() {
     return false;
   }
 
-  var copyLink = document.getElementById("copy-password")
+  const copyLink = document.getElementById("copy-password")
   copyLink.onclick = function() {
-    var el = document.getElementById("passdata")
-    var password = el.getAttribute("data-password")
+    const el = document.getElementById("passdata")
+    const password = el.getAttribute("data-password")
     navigator.clipboard.writeText(password)
       .catch(err => {
         console.error('Failed to write clipboard contents: ', err);
@@ -42,9 +42,9 @@ window.onload = function() {
     return false;
   }
 
-  var showLink = document.getElementById("show-password")
+  const showLink = document.getElementById("show-password")
   showLink.onclick = function() {
-    var password = document.getElementById("passdata").getAttribute("data-password")
+    const password = document.getElementById("passdata").getAttribute("data-password")
     // This removes the controls, so user can't click this twice.
     document.getElementById("pass-controls").innerText = password;
     return false;
