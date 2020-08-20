@@ -2,8 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log"
@@ -122,15 +120,6 @@ func (ph passwordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ph passwordHandler) serveEntryViewHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {
-	// Randomly generate a new password.
-	var passBytes [16]byte
-	if _, err := rand.Read(passBytes[:]); err != nil {
-		log.Printf("Could not generate password: %v", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	pass := base64.RawURLEncoding.EncodeToString(passBytes[:])
-
 	// Get entry content & serve based on whether the entry exists or not.
 	content, err := sess.GetStore().Get(entryPath)
 	if err == secret.ErrNoEntry {
@@ -142,10 +131,9 @@ func (ph passwordHandler) serveEntryViewHTTP(w http.ResponseWriter, r *http.Requ
 	}
 
 	serveTemplate(w, r, entryViewTmpl, struct {
-		Path              string
-		Content           string
-		GeneratedPassword string
-	}{entryPath, content, pass})
+		Path    string
+		Content string
+	}{entryPath, content})
 }
 
 func (ph passwordHandler) serveEntryUpdateHTTP(w http.ResponseWriter, r *http.Request, sess *session.Session, entryPath string) {

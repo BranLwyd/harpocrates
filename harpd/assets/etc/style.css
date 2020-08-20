@@ -116,3 +116,16 @@ ul.entry-list li:before {
   height: 20em;
   width: 100%;
 }
+
+.content-edit input[type="number"] {
+  width: 4em;
+}
+
+.content-edit input[type="text"] {
+  font-family: monospace;
+  width: 40em;
+}
+
+.space {
+  margin-top: 0.5em;
+}

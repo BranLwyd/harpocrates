@@ -18,12 +18,21 @@
 			<div id="content-view" class="content-view">{{if .Content}}<pre id="passdata" data-password="{{firstLine .Content}}"><span id="pass-controls"><a id="copy-password" href><span class="fa">&#xf0ea;</span> Copy Password</a> | <a id="show-password" href><span class="fa">&#xf06e;</span> Show Password</a></span>
 {{restLines .Content | linkify}}</pre>{{else}}No entry for {{name .Path}}.{{end}}</div>
 
-			<form method="POST" id="content-edit" class="content-edit">
-				<div><textarea id="content-edit-content" name="content">{{.Content}}</textarea></div>
-				<div>Randomly-generated new password: <code>{{.GeneratedPassword}}</code></div>
-				<input type="hidden" name="action" value="update-entry" />
-				<div><input type="submit" value="Submit" /></div>
-			</form>
+			<div id="content-edit" class="content-edit">
+				<form method="POST">
+					<div><textarea id="content-edit-content" name="content">{{.Content}}</textarea></div>
+					<input type="hidden" name="action" value="update-entry" />
+					<div><input type="submit" value="Submit" /></div>
+				</form>
+
+				<div>Randomly-generated password: <code id="pwgen"></code></div>
+				<div><input type="button" id="pwgen-copy" value="Copy" /> <input type="button" id="pwgen-reroll" value="Reroll" /></div>
+				<div class="space">Length: <input type="number" id="pwgen-length" min="8" max="40" value="20" /></div>
+				<div class="space">Character set:</div>
+				<div><input type="radio" id="pwgen-cs-lns" name="pwgen-cs" checked/><label for="pwgen-cs-lns">Letters, numbers, and special characters</label></div>
+				<div><input type="radio" id="pwgen-cs-ln" name="pwgen-cs" /><label for="pwgen-cs-ln">Letters and numbers</label></div>
+				<div><input type="radio" id="pwgen-cs-custom" name="pwgen-cs" /><label for="pwgen-cs-custom">Custom: </label><input type="text" id="pwgen-cs"></div>
+			</div>
 
 			<div class="controls">
 				<a id="edit-link" href><span class="fa">&#xf040;</span> Edit</a> | <a href="{{dir .Path}}"><span class="fa">&#xf00d;</span> Close</a>
