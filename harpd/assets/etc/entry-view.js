@@ -18,9 +18,13 @@ function rerollGeneratedPassword() {
   const charset = document.getElementById("pwgen-cs").value;
   if (isNaN(len) || charset.length === 0) {
     document.getElementById("pwgen").innerText = "n/a";
+    document.getElementById("pwgen-bits").innerText = "0";
     return;
   }
+
+  const securityBits = len * Math.log2(charset.length);
   document.getElementById("pwgen").innerText = randomString(len, charset);
+  document.getElementById("pwgen-bits").innerText = securityBits.toFixed(1);
 }
 
 // randomString returns a cryptographically-strong random string of the given
