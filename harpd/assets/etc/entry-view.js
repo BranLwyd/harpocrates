@@ -116,17 +116,23 @@ window.onload = function() {
   }
 
   // Password view UI elements.
-  document.getElementById("copy-password").onclick = function() {
-    navigator.clipboard.writeText(document.getElementById("passdata").getAttribute("data-password"))
-      .catch(err => console.error('Failed to write clipboard contents: ', err));
-    return false;
+  let copyPasswordEl = document.getElementById("copy-password");
+  if (copyPasswordEl) {
+    copyPasswordEl.onclick = function() {
+      navigator.clipboard.writeText(document.getElementById("passdata").getAttribute("data-password"))
+        .catch(err => console.error('Failed to write clipboard contents: ', err));
+      return false;
+    }
   }
 
-  document.getElementById("show-password").onclick = function() {
-    const password = document.getElementById("passdata").getAttribute("data-password")
-    // This removes the controls, so user can't click this twice.
-    document.getElementById("pass-controls").innerText = password;
-    return false;
+  let showPasswordEl = document.getElementById("show-password");
+  if (showPasswordEl) {
+    showPasswordEl.onclick = function() {
+      const password = document.getElementById("passdata").getAttribute("data-password")
+      // This removes the controls, so user can't click this twice.
+      document.getElementById("pass-controls").innerText = password;
+      return false;
+    }
   }
 
   // Password generator UI elements.
