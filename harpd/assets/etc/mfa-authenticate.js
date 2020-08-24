@@ -31,7 +31,7 @@ async function performAuthentication(challenge) {
   } catch(e) {
     const el = document.getElementById("message");
     console.error(e);
-    el.innerText = `Registration failure (see console for details)`;
+    el.innerText = `Authentication failure (see console for details)`;
   }
 }
 
