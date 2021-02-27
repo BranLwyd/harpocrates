@@ -50,3 +50,16 @@ go_binary(
         "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )
+
+go_binary(
+    name = "csv_export",
+    srcs = ["csv_export.go"],
+    pure = "on",
+    deps = [
+        "//secret",
+        "//secret:key",
+        "//secret/proto:key_go_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@org_golang_x_crypto//ssh/terminal:go_default_library",
+    ],
+)
