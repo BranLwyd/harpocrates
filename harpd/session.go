@@ -73,10 +73,10 @@ type user struct{ h *Handler }
 
 var _ warp.User = user{}
 
-func (u user) EntityName() string                      { return "" }
+func (u user) EntityName() string                      { return "Harpocrates User" }
 func (u user) EntityIcon() string                      { return "" }
-func (u user) EntityID() []byte                        { return []byte{} }
-func (u user) EntityDisplayName() string               { return "" }
+func (u user) EntityID() []byte                        { return []byte{0} }
+func (u user) EntityDisplayName() string               { return "Harpocrates User" }
 func (u user) Credentials() map[string]warp.Credential { return u.h.mfaCredentials }
 
 // NewHandler creates a new session handler.
