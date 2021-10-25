@@ -87,7 +87,7 @@ func (serv) ParseConfig() (_ *cpb.Config, _ *kpb.Key, _ error) {
 }
 
 func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
-	m := autocert.Manager{
+	certMgr := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
 		HostPolicy: autocert.HostWhitelist(cfg.HostName),
 		Cache:      autocert.DirCache(cfg.CertDir),
@@ -95,14 +95,9 @@ func (serv) Serve(cfg *cpb.Config, h http.Handler) error {
 	}
 	server := &http.Server{
 		TLSConfig: &tls.Config{
-			PreferServerCipherSuites: true,
-			CurvePreferences: []tls.CurveID{
-				tls.X25519,
-				tls.CurveP256,
-			},
 			MinVersion:             tls.VersionTLS13,
 			SessionTicketsDisabled: true,
-			GetCertificate:         m.GetCertificate,
+			GetCertificate:         certMgr.GetCertificate,
 			NextProtos:             []string{"h2", acme.ALPNProto},
 		},
 		ReadTimeout:  5 * time.Second,
