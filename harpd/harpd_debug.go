@@ -108,11 +108,6 @@ func (serv) Serve(_ *cpb.Config, h http.Handler) error {
 				PrivateKey:  priv,
 				Leaf:        cert,
 			}},
-			PreferServerCipherSuites: true,
-			CurvePreferences: []tls.CurveID{
-				tls.X25519,
-				tls.CurveP256,
-			},
 			MinVersion:             tls.VersionTLS13,
 			SessionTicketsDisabled: true,
 		},
