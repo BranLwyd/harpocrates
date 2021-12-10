@@ -34,7 +34,7 @@ load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_
 
 go_rules_dependencies()
 
-go_register_toolchains(version = "1.17.2")
+go_register_toolchains(version = "1.17.5")
 
 gazelle_dependencies()
 
