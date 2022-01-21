@@ -42,6 +42,19 @@ go_binary(
 )
 
 go_binary(
+    name = "read_entry",
+    srcs = ["read_entry.go"],
+    pure = "on",
+    deps = [
+        "//secret",
+        "//secret:key",
+        "//secret/proto:key_go_proto",
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@org_golang_x_crypto//ssh/terminal:go_default_library",
+    ],
+)
+
+go_binary(
     name = "describe_key",
     srcs = ["describe_key.go"],
     pure = "on",
